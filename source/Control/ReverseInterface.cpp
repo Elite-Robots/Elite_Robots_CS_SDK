@@ -10,11 +10,7 @@ ReverseInterface::ReverseInterface(int port) : port_(port) {
     server_->setConnectCallback([&](std::shared_ptr<boost::asio::ip::tcp::socket> client) {
         {
             std::lock_guard<std::mutex> lock(client_mutex_);
-            if (client_ && client_->is_open()) {
-                ELITE_LOG_INFO("Reverse interface has new connection, previous connection will be dropped.");
-                server_->releaseClient(client_);
-            }
-            ELITE_LOG_INFO("Reverse interface accept new connection.");
+            clientDisconnect();
             client_ = client;
         }
         asyncRead();
@@ -22,7 +18,7 @@ ReverseInterface::ReverseInterface(int port) : port_(port) {
 }
 
 ReverseInterface::~ReverseInterface() {
-    
+    clientDisconnect();
 }
 
 void ReverseInterface::asyncRead() {
@@ -38,8 +34,9 @@ void ReverseInterface::asyncRead() {
     no_use.reset(new int);
     client_->async_read_some(boost::asio::buffer(no_use.get(), sizeof(int)), [&, no_use](boost::system::error_code ec, std::size_t len){
         if (len <= 0 || ec) {
-            ELITE_LOG_INFO("Connection to reverse interface dropped: %s", boost::system::system_error(ec).what());
-            server_->releaseClient(client_);
+            ELITE_LOG_INFO("Connection to reverse interface dropped.");
+            client_->close();
+            asyncRead();
             return;
         } else {
             asyncRead();
@@ -49,10 +46,21 @@ void ReverseInterface::asyncRead() {
 
 int ReverseInterface::write(int32_t buffer[], int size) {
     try {
-        return client_->write_some(boost::asio::buffer(buffer, size));
+        if(client_->write_some(boost::asio::buffer(buffer, size)) < size) {
+            clientDisconnect();
+            return size;
+        }
+        return size;
     } catch(const boost::system::system_error &error) {
-        server_->releaseClient(client_);
+        clientDisconnect();
         return -1;
+    }
+}
+
+void ReverseInterface::clientDisconnect() {
+    if (client_) {
+        ELITE_LOG_INFO("Connection to reverse interface dropped.");
+        client_.reset();
     }
 }
 
@@ -62,7 +70,7 @@ bool ReverseInterface::writeJointCommand(const vector6d_t& pos, ControlMode mode
 
 bool ReverseInterface::writeJointCommand(const vector6d_t* pos, ControlMode mode, int timeout) {
     std::lock_guard<std::mutex> lock(client_mutex_);
-    if (!client_ || !pos) {
+    if (!client_) {
         return false;
     }
     int32_t data[REVERSE_DATA_SIZE] = {0};

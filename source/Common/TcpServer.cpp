@@ -54,10 +54,3 @@ void TcpServer::serverLoop() {
         }
     }
 }
-
-void TcpServer::releaseClient(std::shared_ptr<boost::asio::ip::tcp::socket> client) {
-    io_context_.post([client]() {
-        client->shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-        client->close();
-    });
-}

@@ -19,7 +19,7 @@ foreach(SOURCE ${SOURCES})
     )
     target_link_libraries(
         ${ELITE_SDK_TEST_NAME}
-        elite-cs-series-sdk
+        elite_robot_client
         gtest
         pthread
     )

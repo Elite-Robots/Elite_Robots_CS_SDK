@@ -277,7 +277,6 @@ stopj(STOPJ_ACCELERATION)
 textmsg("ExternalControl: All threads ended")
 socket_close("reverse_socket")
 socket_close("trajectory_socket")
-socket_close("script_command_socket")
 
 
 # NODE_CONTROL_LOOP_ENDS

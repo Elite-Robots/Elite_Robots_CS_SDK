@@ -44,6 +44,17 @@ TEST_F(DashboardClientTest, load_configuration) {
     EXPECT_TRUE(dashboard_client_->loadConfiguration("default.configuration"));
 }
 
+TEST_F(DashboardClientTest, not_connected) {
+    EXPECT_THROW(dashboard_client_->powerOff(), EliteException);
+}
+
+// TEST_F(DashboardClientTest, popup) {
+//     EXPECT_TRUE(dashboard_client_->connect(s_robot_ip));
+//     EXPECT_TRUE(dashboard_client_->popup("Test Popup"));
+//     std::this_thread::sleep_for(std::chrono::milliseconds(500));  // Give time for popup to pop up
+//     EXPECT_TRUE(dashboard_client_->closePopup());
+// }
+
 TEST_F(DashboardClientTest, log_and_getters)
 {
     std::string msg;

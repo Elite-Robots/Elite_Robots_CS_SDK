@@ -13,9 +13,9 @@
 
 #define ELITE_SDK_COMPILE_STANDARD @ELITE_SDK_COMPILE_STANDARD@
 
-#define ELITE_SDK_VERSION "@elite-cs-series-sdk_VERSION@"
-#define ELITE_SDK_VERSION_MAJOR (@elite-cs-series-sdk_VERSION_MAJOR@)
-#define ELITE_SDK_VERSION_MINOR (@elite-cs-series-sdk_VERSION_MINOR@)
-#define ELITE_SDK_VERSION_BUGFIX (@elite-cs-series-sdk_VERSION_PATCH@)
+#define ELITE_SDK_VERSION "@elite_robot_client_VERSION@"
+#define ELITE_SDK_VERSION_MAJOR (@elite_robot_client_VERSION_MAJOR@)
+#define ELITE_SDK_VERSION_MINOR (@elite_robot_client_VERSION_MINOR@)
+#define ELITE_SDK_VERSION_BUGFIX (@elite_robot_client_VERSION_PATCH@)
 
 #endif

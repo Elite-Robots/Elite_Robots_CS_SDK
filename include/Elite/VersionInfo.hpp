@@ -11,7 +11,6 @@
 #define __VERSION_INFO_HPP__
 
 #include <string>
-#include <cstdint>
 
 #include <Elite/EliteOptions.hpp>
 

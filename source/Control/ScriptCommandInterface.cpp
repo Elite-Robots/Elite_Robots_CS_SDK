@@ -11,11 +11,9 @@ ScriptCommandInterface::ScriptCommandInterface(int port) {
     server_->setConnectCallback([&](std::shared_ptr<boost::asio::ip::tcp::socket> client){
         {
             std::lock_guard<std::mutex> lock(client_mutex_);
-            if (client_ && client_->is_open()) {
-                ELITE_LOG_INFO("Script command has new connection, previous connection will be dropped.");
-                server_->releaseClient(client_);
+            if (client_) {
+                clientDisconnect();
             }
-            ELITE_LOG_INFO("Script command accept new connection.");
             client_ = client;
         }
         asyncRead();
@@ -23,7 +21,14 @@ ScriptCommandInterface::ScriptCommandInterface(int port) {
 }
 
 ScriptCommandInterface::~ScriptCommandInterface() {
+    clientDisconnect();
+}
 
+void ScriptCommandInterface::clientDisconnect() {
+    if (client_) {
+        client_.reset();
+        ELITE_LOG_INFO("Connection to script command interface dropped.");
+    }
 }
 
 void ScriptCommandInterface::asyncRead() {
@@ -39,8 +44,9 @@ void ScriptCommandInterface::asyncRead() {
     no_use.reset(new int);
     client_->async_read_some(boost::asio::buffer(no_use.get(), sizeof(int)), [&, no_use](boost::system::error_code ec, std::size_t len){
         if (len <= 0 || ec) {
-            ELITE_LOG_INFO("Connection to script command interface dropped: %s", boost::system::system_error(ec).what());
-            server_->releaseClient(client_);
+            ELITE_LOG_INFO("Connection to script command interface dropped.");
+            client_->close();
+            asyncRead();
             return;
         } else {
             asyncRead();
@@ -129,9 +135,13 @@ bool ScriptCommandInterface::endForceMode() {
 
 int ScriptCommandInterface::write(int32_t buffer[], int size) {
     try {
-        return client_->write_some(boost::asio::buffer(buffer, size));
+        if(client_->write_some(boost::asio::buffer(buffer, size)) < size) {
+            clientDisconnect();
+            return -1;
+        }
+        return size;
     } catch(const boost::system::system_error &error) {
-        server_->releaseClient(client_);
+        clientDisconnect();
         return -1;
     }
 }
