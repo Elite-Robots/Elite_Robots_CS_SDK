@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 project(elite-cs-series-sdk VERSION 1.1.0)
 
+option(ELITE_COMPLIE_TESTS "Compile tests" ON)
+option(ELITE_COMPLIE_DOC "Compile documentation" OFF)
+option(ELITE_COMPLIE_EXAMPLES "Compile examples" OFF)
+
 include(cmake/utils.cmake)
 
 if(NOT DEFINED CMAKE_CXX_STANDARD)
@@ -25,7 +29,7 @@ if(NOT BOOST_FOUND)
 endif()
 
 configure_file(
-    ${CMAKE_SOURCE_DIR}/include/EliteOptions.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/EliteOptions.hpp.in
     ${PROJECT_BINARY_DIR}/include/Elite/EliteOptions.hpp
 )
 
@@ -126,6 +130,22 @@ file(COPY ${PROJECT_SOURCE_DIR}/include/EliteException.hpp DESTINATION ${PROJECT
 file(COPY ${PROJECT_SOURCE_DIR}/include/Elite/EliteDriver.hpp DESTINATION ${PROJECT_BINARY_DIR}/include/Elite)
 file(COPY ${PROJECT_SOURCE_DIR}/include/Elite/Log.hpp DESTINATION ${PROJECT_BINARY_DIR}/include/Elite)
 
+# Prepare exporting targets
+add_library(${PROJECT_NAME}::shared ALIAS ${PROJECT_NAME}_SHARED)
+target_include_directories(
+    ${PROJECT_NAME}_SHARED
+    PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>  
+    $<INSTALL_INTERFACE:include>
+)
+add_library(${PROJECT_NAME}::static ALIAS ${PROJECT_NAME}_STATIC)
+target_include_directories(
+    ${PROJECT_NAME}_STATIC
+    PUBLIC
+    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>  
+    $<INSTALL_INTERFACE:include>
+)
+
 # Is compile examples
 if(ELITE_COMPLIE_EXAMPLES)
     message(STATUS "Compile the exmaples")
@@ -139,13 +159,17 @@ if(ELITE_COMPLIE_DOC)
 endif()
 
 # If googel test has been foune, compile unit test
-if (GTEST_FOUND)
+if (GTEST_FOUND AND ELITE_COMPLIE_TESTS)
     message(STATUS "Compile the tests")
     add_subdirectory(test ${CMAKE_BINARY_DIR}/test/)
 endif()
 
+# Disable installation if project imported with FetchContent
+string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
+option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
+
 # On the Linux platform, install binary library files, header files, and CMake configuration files.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND ELITE_INSTALL)
     include(GNUInstallDirs)
     install(
         TARGETS ${PROJECT_NAME}_SHARED ${PROJECT_NAME}_STATIC
