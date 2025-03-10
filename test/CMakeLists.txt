@@ -11,7 +11,6 @@ foreach(SOURCE ${SOURCES})
     target_include_directories(
         ${ELITE_SDK_TEST_NAME} 
         PUBLIC
-        ${CMAKE_BINARY_DIR}/include
         ${PROJECT_SOURCE_DIR}/include/
         ${PROJECT_SOURCE_DIR}/include/Common
         ${PROJECT_SOURCE_DIR}/include/Elite
@@ -19,15 +18,12 @@ foreach(SOURCE ${SOURCES})
     )
     target_link_libraries(
         ${ELITE_SDK_TEST_NAME}
-        elite-cs-series-sdk
+        elite-cs-series-sdk::shared
         gtest
         pthread
     )
     target_link_directories(
         ${ELITE_SDK_TEST_NAME} 
         PRIVATE ${CMAKE_BINARY_DIR}
-    )
-    add_dependencies(
-        ${ELITE_SDK_TEST_NAME} ${PROJECT_NAME}_SHARED
     )
 endforeach()
