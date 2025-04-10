@@ -612,3 +612,11 @@ bool RtsiIOInterface::setInputRecipeValue(const std::string &name, const T& valu
     input_new_cmd_ = true;
     return ret;
 }
+
+template void RtsiIOInterface::getRecipeValue<double>(const std::string &name, double& out_value);
+template void RtsiIOInterface::getRecipeValue<bool>(const std::string &name, bool& out_value);
+template void RtsiIOInterface::getRecipeValue<int>(const std::string &name, int& out_value);
+
+template bool RtsiIOInterface::setInputRecipeValue<double>(const std::string &name, const double& value);
+template bool RtsiIOInterface::setInputRecipeValue<bool>(const std::string &name, const bool& value);
+template bool RtsiIOInterface::setInputRecipeValue<int>(const std::string &name, const int& value);
