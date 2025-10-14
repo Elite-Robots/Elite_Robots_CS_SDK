@@ -22,8 +22,8 @@ else()
     message(FATAL_ERROR  "C++ standard must C++14 or higher")
 endif()
 
-# Find third-party library
-find_package(Boost REQUIRED)
+# --- MODIFIED: 使用现代化的 CONFIG 模式查找 Boost，并移除了写死的版本号 ---
+find_package(Boost REQUIRED CONFIG COMPONENTS system thread)
 find_package(libssh)
 if(libssh_FOUND)
     set(THIRDPARTY_LIB ${THIRDPARTY_LIB} ssh)
@@ -76,168 +76,92 @@ set(
     ${PROJECT_BINARY_DIR}/include/
 )
 
-# Head file list
 set(
     ELITE_HEADER_FILES
-    Elite/DataType.hpp
-    Elite/VersionInfo.hpp
-    Dashboard/DashboardClient.hpp
-    Rtsi/RtsiClientInterface.hpp
-    Rtsi/RtsiIOInterface.hpp
-    Rtsi/RtsiRecipe.hpp
-    Primary/PrimaryPackage.hpp
-    Primary/RobotConfPackage.hpp
-    Primary/PrimaryPortInterface.hpp
-    EliteException.hpp
-    Elite/EliteDriver.hpp
-    Elite/Log.hpp
-    Elite/RemoteUpgrade.hpp
-    Elite/ControllerLog.hpp
-    Elite/RobotException.hpp
-    Common/RtUtils.hpp
+    Elite/DataType.hpp Elite/VersionInfo.hpp Dashboard/DashboardClient.hpp
+    Rtsi/RtsiClientInterface.hpp Rtsi/RtsiIOInterface.hpp Rtsi/RtsiRecipe.hpp
+    Primary/PrimaryPackage.hpp Primary/RobotConfPackage.hpp Primary/PrimaryPortInterface.hpp
+    EliteException.hpp Elite/EliteDriver.hpp Elite/Log.hpp Elite/RemoteUpgrade.hpp
+    Elite/ControllerLog.hpp Elite/RobotException.hpp Common/RtUtils.hpp
 )
 
-# Set output library default name
 set(SDK_STATIC_LIB_OUTPUT_NAME "${PROJECT_NAME}")
 set(SDK_SHARED_LIB_OUTPUT_NAME "${PROJECT_NAME}")
 
-# Configure accordingly based on the operating system.
+# --- MODIFIED: 增加对 macOS (APPLE) 的支持 ---
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS "SYSTEM: Windows")
-    add_definitions(
-        -D_WIN32_WINNT=0x0601
-        -DELITE_EXPORT_LIBRARY
-    )
+    add_definitions(-D_WIN32_WINNT=0x0601)
     set(SDK_STATIC_LIB_OUTPUT_NAME "${PROJECT_NAME}_static")
     set(SDK_SHARED_LIB_OUTPUT_NAME "${PROJECT_NAME}")
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    message(STATUS "SYSTEM: Linux")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE)
+    if(APPLE)
+        message(STATUS "SYSTEM: macOS")
+    else()
+        message(STATUS "SYSTEM: Linux")
+    endif()
     set(SYSTEM_LIB pthread)
 else()
     message(FATAL_ERROR "Unsupport operating system")
 endif()
 
+add_library(${PROJECT_NAME}_SHARED SHARED ${ELITE_LIB_SOURCE_FILE})
+add_library(${PROJECT_NAME}_STATIC STATIC ${ELITE_LIB_SOURCE_FILE})
 
-# Add library
-add_library(
-    ${PROJECT_NAME}_SHARED
-    SHARED
-    ${ELITE_LIB_SOURCE_FILE}
-)
-add_library(
-    ${PROJECT_NAME}_STATIC
-    STATIC
-    ${ELITE_LIB_SOURCE_FILE}
-)
+# --- MODIFIED: 使用现代化的方式为目标添加 ELITE_EXPORT_LIBRARY 编译定义 ---
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    target_compile_definitions(${PROJECT_NAME}_SHARED PRIVATE ELITE_EXPORT_LIBRARY)
+    target_compile_definitions(${PROJECT_NAME}_STATIC PRIVATE ELITE_EXPORT_LIBRARY)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE)
+    target_compile_definitions(${PROJECT_NAME}_SHARED PRIVATE ELITE_EXPORT_LIBRARY)
+    target_compile_definitions(${PROJECT_NAME}_STATIC PRIVATE ELITE_EXPORT_LIBRARY)
+endif()
+
 define_rel_file_macro(${PROJECT_NAME}_SHARED)
 define_rel_file_macro(${PROJECT_NAME}_STATIC)
 set_target_properties(${PROJECT_NAME}_SHARED PROPERTIES OUTPUT_NAME ${SDK_SHARED_LIB_OUTPUT_NAME})
 set_target_properties(${PROJECT_NAME}_STATIC PROPERTIES OUTPUT_NAME ${SDK_STATIC_LIB_OUTPUT_NAME})
-target_include_directories(
-    ${PROJECT_NAME}_SHARED
-    PRIVATE
-    ${ELITE_LIB_INCLUDE_DIR}
-)
-target_include_directories(
-    ${PROJECT_NAME}_STATIC
-    PRIVATE
-    ${ELITE_LIB_INCLUDE_DIR}
-)
-target_link_libraries(
-    ${PROJECT_NAME}_SHARED
-    PRIVATE
-    ${THIRDPARTY_LIB}
-)
-target_link_libraries(
-    ${PROJECT_NAME}_STATIC
-    PRIVATE
-    ${THIRDPARTY_LIB}
-)
+target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_LIB_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_LIB_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME}_SHARED PRIVATE ${THIRDPARTY_LIB})
+target_link_libraries(${PROJECT_NAME}_STATIC PRIVATE ${THIRDPARTY_LIB})
 
-# Copy head file
 foreach(header ${ELITE_HEADER_FILES})
-    file(COPY ${PROJECT_SOURCE_DIR}/include/${header} 
-         DESTINATION ${PROJECT_BINARY_DIR}/include/Elite)
+    file(COPY ${PROJECT_SOURCE_DIR}/include/${header} DESTINATION ${PROJECT_BINARY_DIR}/include/Elite)
 endforeach()
 
-# Prepare exporting targets
 add_library(${PROJECT_NAME}::shared ALIAS ${PROJECT_NAME}_SHARED)
-target_include_directories(
-    ${PROJECT_NAME}_SHARED
-    PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>  
-    $<INSTALL_INTERFACE:include>
-)
+target_include_directories(${PROJECT_NAME}_SHARED PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>)
 add_library(${PROJECT_NAME}::static ALIAS ${PROJECT_NAME}_STATIC)
-target_include_directories(
-    ${PROJECT_NAME}_STATIC
-    PUBLIC
-    $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>  
-    $<INSTALL_INTERFACE:include>
-)
+target_include_directories(${PROJECT_NAME}_STATIC PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>)
 
-# Is compile examples
 if(ELITE_COMPILE_EXAMPLES)
     message(STATUS "Compile the exmaples")
     add_subdirectory(example ${CMAKE_BINARY_DIR}/example/)
 endif()
-
-# If compile documentation
 if(ELITE_COMPILE_DOC)
     message(STATUS "Compile the documentation.")
     add_subdirectory(doc ${CMAKE_BINARY_DIR}/doc/)
 endif()
-
-# If googel test has been foune, compile unit test
 if (ELITE_COMPILE_TESTS)
     message(STATUS "Compile the tests")
     add_subdirectory(test ${CMAKE_BINARY_DIR}/test/)
 endif()
 
-# Disable installation if project imported with FetchContent
 string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
 option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
 
-# On the Linux platform, install binary library files, header files, and CMake configuration files.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND ELITE_INSTALL)
+# --- MODIFIED: 增加对 macOS (APPLE) 的支持 ---
+if((CMAKE_SYSTEM_NAME STREQUAL "Linux" OR APPLE) AND ELITE_INSTALL)
     include(GNUInstallDirs)
-    install(
-        TARGETS ${PROJECT_NAME}_SHARED ${PROJECT_NAME}_STATIC
-        EXPORT ${PROJECT_NAME}Targets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    )
-    install(
-        DIRECTORY  ${PROJECT_BINARY_DIR}/include/
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-    install(
-        DIRECTORY ${PROJECT_SOURCE_DIR}/source/resources/
-        DESTINATION share/Elite
-    )
-
+    install(TARGETS ${PROJECT_NAME}_SHARED ${PROJECT_NAME}_STATIC EXPORT ${PROJECT_NAME}Targets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(DIRECTORY ${PROJECT_SOURCE_DIR}/source/resources/ DESTINATION share/Elite)
     include(CMakePackageConfigHelpers)
-    configure_package_config_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}Config.cmake.in"
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-        INSTALL_DESTINATION lib/cmake/${PROJECT_NAME}
-    )
-    write_basic_package_version_file(
-        ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake 
-        VERSION ${PROJECT_VERSION} 
-        COMPATIBILITY SameMajorVersion
-    )
-
-    install(
-        EXPORT ${PROJECT_NAME}Targets
-        FILE ${PROJECT_NAME}Targets.cmake
-        DESTINATION lib/cmake/${PROJECT_NAME}
-    )
-    install(
-        FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-        DESTINATION lib/cmake/${PROJECT_NAME}
-    )
+    configure_package_config_file("${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}Config.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" INSTALL_DESTINATION lib/cmake/${PROJECT_NAME})
+    write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion)
+    install(EXPORT ${PROJECT_NAME}Targets FILE ${PROJECT_NAME}Targets.cmake DESTINATION lib/cmake/${PROJECT_NAME})
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake" DESTINATION lib/cmake/${PROJECT_NAME})
 endif()
 
 message(STATUS "CMAKE_BUILD_TYPE:                   ${CMAKE_BUILD_TYPE}")
