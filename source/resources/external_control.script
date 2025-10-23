@@ -3,7 +3,7 @@
 import threading
 import time
 import queue
-
+import struct
 class Queue(queue.Queue):
     def __init__(self):
         super().__init__()
@@ -76,6 +76,8 @@ SCRIPT_CMD_SET_PAYLOAD = 1
 SCRIPT_CMD_SET_TOOL_VOLTAGE = 2
 SCRIPT_CMD_START_FORCE_MODE = 3
 SCRIPT_CMD_END_FORCE_MODE = 4
+SCRIPT_CMD_INVERSE=5
+SCRIPT_CMD_FORWARD=6
 
 FREEDRIVE_START = 1
 FREEDRIVE_NOOP = 0
@@ -287,7 +289,11 @@ def speedjThread():
         speedj(speedj_vel, 40.0, steptime)
     textmsg("speedj thread ended")
     stopj(STOPJ_ACCELERATION)
-
+def int_list_to_bytes(int_list):
+    byte_list = []
+    for num in int_list:
+        byte_list.extend(struct.pack('>i', num)) 
+    return byte_list
 # Thread to receive one shot script commands, the commands shouldn't be blocking
 def scriptCommands():
     while control_mode > MODE_STOPPED:
@@ -312,7 +318,26 @@ def scriptCommands():
                 force_mode(task_frame, selection_vector, wrench, force_type, force_limits)
             elif command == SCRIPT_CMD_END_FORCE_MODE:
                 end_force_mode()
-
+            elif command==SCRIPT_CMD_INVERSE:
+                pose_frame = [raw_command[2] / COMMON_ZOOM_RATIO, raw_command[3] / COMMON_ZOOM_RATIO, raw_command[4] / COMMON_ZOOM_RATIO, raw_command[5] / COMMON_ZOOM_RATIO, raw_command[6] / COMMON_ZOOM_RATIO, raw_command[7] / COMMON_ZOOM_RATIO]
+                near_joint =[raw_command[8] / COMMON_ZOOM_RATIO, raw_command[9] / COMMON_ZOOM_RATIO, raw_command[10] / COMMON_ZOOM_RATIO, raw_command[11] / COMMON_ZOOM_RATIO, raw_command[12] / COMMON_ZOOM_RATIO, raw_command[13] / COMMON_ZOOM_RATIO]
+                tcp_pose =[raw_command[14] / COMMON_ZOOM_RATIO, raw_command[15] / COMMON_ZOOM_RATIO, raw_command[16] / COMMON_ZOOM_RATIO, raw_command[17] / COMMON_ZOOM_RATIO, raw_command[18] / COMMON_ZOOM_RATIO, raw_command[19] / COMMON_ZOOM_RATIO]
+                if get_inverse_kin_has_solution(pose_frame)==False:
+                    textmsg("no_ik_result")
+                    break
+                ik_result=get_inverse_kin(pose_frame,near_joint,tcp_pose)        
+                int_ik_result_list = [int(round(x * COMMON_ZOOM_RATIO)) for x in ik_result]
+                byte_data = int_list_to_bytes(int_ik_result_list)
+                textmsg("ik_result: " + str(ik_result))
+                socket_send_byte_list(byte_data,"script_command_socket")
+            elif command==SCRIPT_CMD_FORWARD:
+                pose_frame2 = [raw_command[2] / COMMON_ZOOM_RATIO, raw_command[3] / COMMON_ZOOM_RATIO, raw_command[4] / COMMON_ZOOM_RATIO, raw_command[5] / COMMON_ZOOM_RATIO, raw_command[6] / COMMON_ZOOM_RATIO, raw_command[7] / COMMON_ZOOM_RATIO]
+                tcp_pose2 =[raw_command[8] / COMMON_ZOOM_RATIO, raw_command[9] / COMMON_ZOOM_RATIO, raw_command[10] / COMMON_ZOOM_RATIO, raw_command[11] / COMMON_ZOOM_RATIO, raw_command[12] / COMMON_ZOOM_RATIO, raw_command[13] / COMMON_ZOOM_RATIO]
+                fk_result=get_forward_kin(pose_frame2,tcp_pose2)
+                int_fk_result_list = [int(round(x * COMMON_ZOOM_RATIO)) for x in fk_result]
+                byte_data2 = int_list_to_bytes(int_fk_result_list)
+                textmsg("fk_result: " + str(fk_result))
+                socket_send_byte_list(byte_data2,"script_command_socket")
 # HEADER_END
 
 

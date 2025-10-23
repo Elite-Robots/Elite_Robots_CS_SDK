@@ -379,3 +379,23 @@ void registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)>
     - registerRobotExceptionCallback: 回调函数，用于处理接收到的机器人异常。参数为机器人异常的共享指针(参考：[RobotException](./RobotException.cn.md))。
     
 
+### ***获取机器人逆解***
+```cpp
+std::shared_ptr<vector6d_t> getInverseKinematics(const vector6d_t& pose, const vector6d_t& near_joint,
+                                                              const vector6d_t& tcp) 
+```
+
+- ***功能***
+    传入参数获取逆解。
+
+- ***返回值***：返回值为指向<vector6d_t>数据类型的指针。
+
+### ***获取机器人正解***
+```cpp
+std::shared_ptr<vector6d_t> getForwardKinematics(const vector6d_t& joint_positions, const vector6d_t& tcp)
+```
+
+- ***功能***
+    传入参数获取正解。
+
+- ***返回值***：返回值为指向<vector6d_t>数据类型的指针。
