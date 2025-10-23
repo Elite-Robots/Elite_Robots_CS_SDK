@@ -33,17 +33,16 @@ static const std::string SERVOJ_TIME_REPLACE = "{{SERVOJ_TIME_REPLACE}}";
 static const std::string SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE = "{{SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE}}";
 static const std::string SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE = "{{SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE}}";
 
-
 class EliteDriver::Impl {
    public:
     Impl() = delete;
     explicit Impl(const std::string& robot_ip) : robot_ip_(robot_ip) { TcpServer::start(); }
-    ~Impl() { 
+    ~Impl() {
         reverse_server_.reset();
         trajectory_server_.reset();
         script_command_server_.reset();
         script_sender_.reset();
-        TcpServer::stop(); 
+        TcpServer::stop();
     }
 
     std::string readScriptFile(const std::string& file);
@@ -84,7 +83,8 @@ void EliteDriver::Impl::scriptParamWrite(std::string& file_string, const EliteDr
     }
 
     while (file_string.find(REVERSE_PORT_REPLACE) != std::string::npos) {
-        file_string.replace(file_string.find(REVERSE_PORT_REPLACE), REVERSE_PORT_REPLACE.length(), std::to_string(config.reverse_port));
+        file_string.replace(file_string.find(REVERSE_PORT_REPLACE), REVERSE_PORT_REPLACE.length(),
+                            std::to_string(config.reverse_port));
     }
 
     while (file_string.find(SCRIPT_COMMAND_PORT_REPLACE) != std::string::npos) {
@@ -99,7 +99,8 @@ void EliteDriver::Impl::scriptParamWrite(std::string& file_string, const EliteDr
     }
 
     while (file_string.find(SERVOJ_TIME_REPLACE) != std::string::npos) {
-        file_string.replace(file_string.find(SERVOJ_TIME_REPLACE), SERVOJ_TIME_REPLACE.length(), std::to_string(config.servoj_time));
+        file_string.replace(file_string.find(SERVOJ_TIME_REPLACE), SERVOJ_TIME_REPLACE.length(),
+                            std::to_string(config.servoj_time));
     }
 
     while (file_string.find(POS_ZOOM_RATIO_REPLACE) != std::string::npos) {
@@ -137,19 +138,20 @@ void EliteDriver::Impl::scriptParamWrite(std::string& file_string, const EliteDr
     }
 
     while (file_string.find(SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE) != std::string::npos) {
-        file_string.replace(file_string.find(SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE), SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE.length(), std::to_string(config.servoj_queue_pre_recv_size));
+        file_string.replace(file_string.find(SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE), SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE.length(),
+                            std::to_string(config.servoj_queue_pre_recv_size));
     }
 
     float servoj_queue_pre_recv_timeout = 0;
     if (config.servoj_queue_pre_recv_timeout <= 0) {
-       servoj_queue_pre_recv_timeout = config.servoj_queue_pre_recv_size * config.servoj_time;
+        servoj_queue_pre_recv_timeout = config.servoj_queue_pre_recv_size * config.servoj_time;
     } else {
         servoj_queue_pre_recv_timeout = config.servoj_queue_pre_recv_timeout;
     }
     while (file_string.find(SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE) != std::string::npos) {
-        file_string.replace(file_string.find(SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE), SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE.length(), std::to_string(servoj_queue_pre_recv_timeout));
+        file_string.replace(file_string.find(SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE), SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE.length(),
+                            std::to_string(servoj_queue_pre_recv_timeout));
     }
-    
 }
 
 void EliteDriver::init(const EliteDriverConfig& config) {
@@ -245,7 +247,6 @@ bool EliteDriver::writeServoj(const vector6d_t& pos, int timeout_ms, bool cartes
             return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_SERVOJ, timeout_ms);
         }
     }
-     
 }
 
 bool EliteDriver::writeSpeedl(const vector6d_t& vel, int timeout_ms) {
@@ -341,6 +342,11 @@ bool EliteDriver::getPrimaryPackage(std::shared_ptr<PrimaryPackage> pkg, int tim
     return impl_->primary_port_->getPackage(pkg, timeout_ms);
 }
 
+std::shared_ptr<vector6d_t> EliteDriver::getInverseKinematics(const vector6d_t& pose, const vector6d_t& near_joint,
+                                                              const vector6d_t& tcp) {
+    return impl_->script_command_server_->getInverseKinematics(pose, near_joint, tcp);
+}
+
 bool EliteDriver::primaryReconnect() {
     impl_->primary_port_->disconnect();
     return impl_->primary_port_->connect(impl_->robot_ip_);
@@ -348,4 +354,8 @@ bool EliteDriver::primaryReconnect() {
 
 void EliteDriver::registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)> cb) {
     impl_->primary_port_->registerRobotExceptionCallback(cb);
+}
+
+std::shared_ptr<vector6d_t> EliteDriver::getForwardKinematics(const vector6d_t& joint_positions, const vector6d_t& tcp) {
+    return impl_->script_command_server_->getForwardKinematics(joint_positions, tcp);
 }

@@ -358,6 +358,39 @@ class EliteDriver {
      *           representing the received exception.
      */
     ELITE_EXPORT void registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)> cb);
+
+    /**
+     * @brief This command calculates the inverse kinematics solution based on the given pose, near joint configuration, and TCP
+     * (Tool Center Point).
+     *
+     * The function computes the joint angles required to achieve a specified pose in Cartesian space.
+     * If the `near_joint` and `tcp` parameters are not provided, the function will use default values.
+     *
+     * @param pose The target pose in Cartesian space [x, y, z, Rx, Ry, Rz], where x, y, z are in meters, and Rx, Ry, Rz are in
+     * radians.
+     * @param near_joint The control function returns the joint angle solution closest to the near_joint configuration.
+     * @param tcp (Optional) The Tool Center Point (TCP) configuration. If not provided, the default TCP is used.
+     *
+     * @return A shared pointer to a `vector6d_t` containing the joint angles in radians that correspond to the target pose.
+     *         Returns nullptr if no valid solution is found.
+     */
+    ELITE_EXPORT std::shared_ptr<vector6d_t> getInverseKinematics(const vector6d_t& pose, const vector6d_t& near_joint,
+                                                                  const vector6d_t& tcp = {0, 0, 0, 0, 0, 0});
+
+    /**
+     * @brief This command calculates the forward kinematics solution based on the given joint angles and TCP (Tool Center Point).
+     *
+     * The function computes the pose in Cartesian space corresponding to a specified set of joint angles.
+     * If the `tcp` parameter is not provided, the function will use a default value.
+     *
+     * @param joint The joint angles [J1, J2, J3, J4, J5, J6] in radians.
+     * @param tcp (Optional) The Tool Center Point (TCP) configuration. If not provided, the default TCP is used.
+     *
+     * @return A shared pointer to a `vector6d_t` containing the pose [x, y, z, Rx, Ry, Rz], where x, y, z are in meters,
+     *         and Rx, Ry, Rz are in radians. Returns nullptr if no valid solution is found.
+     */
+    ELITE_EXPORT std::shared_ptr<vector6d_t> getForwardKinematics(const vector6d_t& joint,
+                                                                  const vector6d_t& tcp = {0, 0, 0, 0, 0, 0});
 };
 
 }  // namespace ELITE
