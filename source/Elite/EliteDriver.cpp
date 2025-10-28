@@ -1,4 +1,5 @@
 #include "EliteDriver.hpp"
+#include <Eigen/Dense>
 #include <boost/asio.hpp>
 #include <fstream>
 #include <iostream>
@@ -55,6 +56,8 @@ class EliteDriver::Impl {
     std::unique_ptr<ScriptSender> script_sender_;
     std::unique_ptr<ScriptCommandInterface> script_command_server_;
     std::unique_ptr<PrimaryPortInterface> primary_port_;
+
+    std::unique_ptr<Kinematics> kinematics_;
     bool headless_mode_;
 };
 
@@ -185,6 +188,8 @@ void EliteDriver::init(const EliteDriverConfig& config) {
     impl_->script_command_server_ = std::make_unique<ScriptCommandInterface>(config.script_command_port);
     ELITE_LOG_DEBUG("Created script command interface");
 
+    impl_->kinematics_ = std::make_unique<Kinematics>();
+    ELITE_LOG_DEBUG("Created Kinematics");
     impl_->headless_mode_ = config.headless_mode;
 
     if (impl_->headless_mode_) {
@@ -358,4 +363,63 @@ void EliteDriver::registerRobotExceptionCallback(std::function<void(RobotExcepti
 
 std::shared_ptr<vector6d_t> EliteDriver::getForwardKinematics(const vector6d_t& joint_positions, const vector6d_t& tcp) {
     return impl_->script_command_server_->getForwardKinematics(joint_positions, tcp);
+}
+
+void EliteDriver::setKDLconfig(const double dh_a[AXIS_COUNT], const double dh_d[AXIS_COUNT], const double dh_alpha[AXIS_COUNT]) {
+    impl_->kinematics_->updateKinConfig(dh_a, dh_d, dh_alpha);
+}
+
+std::shared_ptr<vector6d_t> EliteDriver::getInverseKin(const vector6d_t& pose, const vector6d_t& joints_near_vec,
+                                                       const vector6d_t& tcp_offset_xyzRPY) {
+    JOINTS joints_near;
+    MAT4X4 mat;
+    double x = pose[0];
+    double y = pose[1];
+    double z = pose[2];
+    double rx = pose[3];
+    double ry = pose[4];
+    double rz = pose[5];
+    KDL::Rotation rot = KDL::Rotation::RPY(rx, ry, rz);
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j) mat[i][j] = rot(i, j);
+    mat[0][3] = x;
+    mat[1][3] = y;
+    mat[2][3] = z;
+    mat[3][0] = 0.0;
+    mat[3][1] = 0.0;
+    mat[3][2] = 0.0;
+    mat[3][3] = 1.0;
+    for (int i = 0; i < AXIS_COUNT; ++i) {
+        joints_near[i] = joints_near_vec[i];
+    }
+    JOINTS joints_result{};
+    if (impl_->kinematics_->inverse(mat, joints_near, joints_result, tcp_offset_xyzRPY) != 0) {
+        return nullptr;
+    }
+
+    auto result = std::make_shared<vector6d_t>();
+    for (int i = 0; i < AXIS_COUNT; ++i) {
+        (*result)[i] = joints_result[i];
+    }
+    return result;
+}
+
+std::shared_ptr<vector6d_t> EliteDriver::getForwardKin(const vector6d_t& joints, const vector6d_t& tcp_offset_xyzRPY) {
+    MAT4X4 mat;
+    JOINTS joints_array;
+    auto result = std::make_shared<vector6d_t>();
+    for (size_t i = 0; i < 6; ++i) {
+        joints_array[i] = joints[i];
+    }
+    impl_->kinematics_->forward(joints_array, mat, tcp_offset_xyzRPY);
+    (*result)[0] = mat[0][3];  // X
+    (*result)[1] = mat[1][3];  // Y
+    (*result)[2] = mat[2][3];  // Z
+    KDL::Rotation rot(mat[0][0], mat[0][1], mat[0][2], mat[1][0], mat[1][1], mat[1][2], mat[2][0], mat[2][1], mat[2][2]);
+    double roll, pitch, yaw;
+    rot.GetRPY(roll, pitch, yaw);
+    (*result)[3] = roll;
+    (*result)[4] = pitch;
+    (*result)[5] = yaw;
+    return result;
 }

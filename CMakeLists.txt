@@ -5,10 +5,8 @@ project(elite-cs-series-sdk VERSION 1.2.0)
 option(ELITE_COMPILE_TESTS "Compile tests" OFF)
 option(ELITE_COMPILE_DOC "Compile documentation" OFF)
 option(ELITE_COMPILE_EXAMPLES "Compile examples" OFF)
-
 include(cmake/utils.cmake)
-
-if(NOT DEFINED CMAKE_CXX_STANDARD)
+if(NOT DEFINED CMAKE_CXX_STANDARD) 
     set(CMAKE_CXX_STANDARD 17)
 endif()
 
@@ -23,10 +21,49 @@ else()
 endif()
 
 # Find third-party library
+##Eigen3
+find_package(Eigen3 QUIET)
+if (Eigen3_FOUND)
+    message(STATUS "Found Eigen3: ${EIGEN3_INCLUDE_DIRS}")
+    include_directories(${EIGEN3_INCLUDE_DIRS})
+else()
+    message(WARNING "Eigen3 not found! Trying fallback path /usr/include/eigen3 ...")
+    if (EXISTS "/usr/include/eigen3/Eigen/Core")
+        include_directories("/usr/include/eigen3")
+        message(STATUS "Using fallback Eigen3 include path: /usr/include/eigen3")
+    else()
+        message(FATAL_ERROR "Eigen3 not found on this system. Please install it with:
+            sudo apt install libeigen3-dev")
+    endif()
+endif()
+###KDL
+find_package(orocos_kdl QUIET)
+if (orocos_kdl_FOUND)
+    message(STATUS "Found Orocos KDL: ${orocos_kdl_INCLUDE_DIRS}")
+    include_directories(${orocos_kdl_INCLUDE_DIRS})
+    list(APPEND THIRDPARTY_LIB orocos-kdl)
+    add_definitions(-DELITE_USE_KDL)
+else()
+    message(WARNING "Orocos KDL not found! Trying fallback include and library paths...")
+    if (EXISTS "/usr/include/kdl/chain.hpp")
+        include_directories("/usr/include")
+        if (EXISTS "/usr/lib/x86_64-linux-gnu/liborocos-kdl.so")
+            link_directories("/usr/lib/x86_64-linux-gnu")
+            target_link_libraries(elite-cs-series-sdk_SHARED orocos-kdl)
+            target_link_libraries(elite-cs-series-sdk_STATIC orocos-kdl)
+            message(STATUS "Using fallback Orocos KDL path: /usr/include + /usr/lib/x86_64-linux-gnu")
+        else()
+            message(WARNING "Found KDL headers but no liborocos-kdl.so in system paths!")
+        endif()
+    else()
+        message(FATAL_ERROR "Orocos KDL not found! Please install it using:
+            sudo apt install liborocos-kdl-dev")
+    endif()
+endif()
 find_package(Boost REQUIRED)
 find_package(libssh)
 if(libssh_FOUND)
-    set(THIRDPARTY_LIB ${THIRDPARTY_LIB} ssh)
+    list(APPEND THIRDPARTY_LIB ssh)
     add_definitions(-DELITE_USE_LIB_SSH)
 endif()
 
@@ -43,6 +80,7 @@ set(
     source/Common/EliteException.cpp
     source/Common/SshUtils.cpp
     source/Common/RtUtils.cpp
+    source/Common/Kinematics.cpp
     source/Primary/PrimaryPort.cpp
     source/Primary/PrimaryPortInterface.cpp
     source/Primary/RobotConfPackage.cpp
@@ -95,6 +133,7 @@ set(
     Elite/ControllerLog.hpp
     Elite/RobotException.hpp
     Common/RtUtils.hpp
+    Common/kinematics.hpp
 )
 
 # Set output library default name
@@ -214,7 +253,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND ELITE_INSTALL)
         DIRECTORY ${PROJECT_SOURCE_DIR}/source/resources/
         DESTINATION share/Elite
     )
-
     include(CMakePackageConfigHelpers)
     configure_package_config_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_NAME}Config.cmake.in"

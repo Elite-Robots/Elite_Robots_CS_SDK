@@ -4,7 +4,7 @@
  * @brief This file include main interface.
  * @date 2024-08-21
  *
- * @copyright Copyright (c) 2024
+ * @copyright Copyright (c) 2024+
  *
  */
 #ifndef __ELITE_DRIVER_HPP__
@@ -14,10 +14,10 @@
 #include <Elite/EliteOptions.hpp>
 #include <Elite/PrimaryPackage.hpp>
 #include <Elite/PrimaryPortInterface.hpp>
-
 #include <functional>
 #include <memory>
 #include <string>
+#include "kinematics.hpp"
 
 namespace ELITE {
 
@@ -360,37 +360,127 @@ class EliteDriver {
     ELITE_EXPORT void registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)> cb);
 
     /**
-     * @brief This command calculates the inverse kinematics solution based on the given pose, near joint configuration, and TCP
-     * (Tool Center Point).
+     * @brief Computes the inverse kinematics using the robot's internal solver.
      *
-     * The function computes the joint angles required to achieve a specified pose in Cartesian space.
-     * If the `near_joint` and `tcp` parameters are not provided, the function will use default values.
+     * This function calculates the joint angles required for the robot's end-effector
+     * to reach the specified Cartesian pose using the **robot's onboard computation**.
      *
-     * @param pose The target pose in Cartesian space [x, y, z, Rx, Ry, Rz], where x, y, z are in meters, and Rx, Ry, Rz are in
-     * radians.
-     * @param near_joint The control function returns the joint angle solution closest to the near_joint configuration.
-     * @param tcp (Optional) The Tool Center Point (TCP) configuration. If not provided, the default TCP is used.
+     * @param pose A `vector6d_t` representing the desired end-effector pose [x, y, z, Rx, Ry, Rz]
+     *             in meters and radians.
+     * @param near_joint A `vector6d_t` providing a nearby joint configuration as the initial guess.
+     * @param tcp (Optional) A `vector6d_t` specifying the TCP offset. Defaults to {0,0,0,0,0,0}.
      *
-     * @return A shared pointer to a `vector6d_t` containing the joint angles in radians that correspond to the target pose.
-     *         Returns nullptr if no valid solution is found.
+     * @return A `std::shared_ptr<vector6d_t>` containing the computed joint angles [J1..J6] in radians.
+     *         Returns `nullptr` if the onboard solver fails.
+     *
+     * @note The computation is performed on the **robot controller itself**, so it uses the
+     *       robot's current calibration and does **not** require DH parameters to be set.
      */
     ELITE_EXPORT std::shared_ptr<vector6d_t> getInverseKinematics(const vector6d_t& pose, const vector6d_t& near_joint,
                                                                   const vector6d_t& tcp = {0, 0, 0, 0, 0, 0});
 
     /**
-     * @brief This command calculates the forward kinematics solution based on the given joint angles and TCP (Tool Center Point).
+     * @brief Computes the forward kinematics using the robot's internal solver.
      *
-     * The function computes the pose in Cartesian space corresponding to a specified set of joint angles.
-     * If the `tcp` parameter is not provided, the function will use a default value.
+     * This function calculates the Cartesian pose of the robot's end-effector based on the given
+     * joint angles using the **robot's onboard computation**, which reflects the current
+     * calibration and configuration of the robot.
      *
-     * @param joint The joint angles [J1, J2, J3, J4, J5, J6] in radians.
-     * @param tcp (Optional) The Tool Center Point (TCP) configuration. If not provided, the default TCP is used.
+     * @param joints A `vector6d_t` representing the robot's joint angles [J1..J6] in radians.
+     * @param tcp_offset_xyzRPY (Optional) A `vector6d_t` specifying the TCP offset [x, y, z, Rx, Ry, Rz].
+     *                          Defaults to {0,0,0,0,0,0}.
      *
-     * @return A shared pointer to a `vector6d_t` containing the pose [x, y, z, Rx, Ry, Rz], where x, y, z are in meters,
-     *         and Rx, Ry, Rz are in radians. Returns nullptr if no valid solution is found.
+     * @return A `std::shared_ptr<vector6d_t>` containing the computed end-effector pose [x, y, z, Rx, Ry, Rz],
+     *         where x, y, z are in meters and Rx, Ry, Rz are in radians.
+     *         Returns `nullptr` if the onboard solver fails.
+     *
+     * @note Uses the **robot controller's internal solver**, no DH parameters need to be set.
      */
     ELITE_EXPORT std::shared_ptr<vector6d_t> getForwardKinematics(const vector6d_t& joint,
                                                                   const vector6d_t& tcp = {0, 0, 0, 0, 0, 0});
+    /**
+     * @brief Configures the robot's Denavit-Hartenberg (DH) parameters for kinematics calculations.
+     *
+     * This function must be called **before performing inverse kinematics or forward kinematics**
+     * calculations that rely on the KDL solver. It sets the robot's link lengths, offsets, and twist angles
+     * according to the DH convention.
+     *
+     * @param dh_a An array of doubles of size `AXIS_COUNT` representing the link lengths (a_i) in meters.
+     * @param dh_d An array of doubles of size `AXIS_COUNT` representing the link offsets (d_i) in meters.
+     * @param dh_alpha An array of doubles of size `AXIS_COUNT` representing the link twist angles (alpha_i) in radians.
+     *
+     * @note
+     * - Failing to call this function before computing forward or inverse kinematics may result
+     *   in incorrect or undefined solutions.
+     * - The `AXIS_COUNT` should match the number of joints of the robot (default to 6).
+     *
+     * @example
+     * double dh_a[6] = {0.0, 0.5, 0.3, 0.0, 0.0, 0.0};
+     * double dh_d[6] = {0.2, 0.0, 0.0, 0.4, 0.0, 0.1};
+     * double dh_alpha[6] = {0.0, -M_PI/2, 0.0, -M_PI/2, M_PI/2, 0.0};
+     * robotDriver->setKDLconfig(dh_a, dh_d, dh_alpha);
+     */
+    ELITE_EXPORT void setKDLconfig(const double dh_a[AXIS_COUNT], const double dh_d[AXIS_COUNT], const double dh_alpha[AXIS_COUNT]);
+    /**
+    * @brief Computes the inverse kinematics using a local solver on the PC.
+    *
+    * This function calculates the joint angles required for the robot's end-effector
+    * to reach the specified Cartesian pose using **local computation on the PC**.
+    *
+    * @warning Before calling this function, you **must** configure the robot's DH parameters
+    *          using `setKDLconfig()`. Failure to do so may result in incorrect IK results.
+    *
+    * @param pose A `vector6d_t` representing the desired end-effector pose [x, y, z, Rx, Ry, Rz]
+    *             in meters and radians.
+    * @param near_joint A `vector6d_t` providing a nearby joint configuration as the initial guess.
+    * @param tcp_offset_xyzRPY (Optional) A `vector6d_t` specifying the TCP offset. Defaults to {0,0,0,0,0,0}.
+    *
+     @return A `std::shared_ptr<vector6d_t>` containing the computed joint angles [J1..J6] in radians.
+    *         Returns `nullptr` if no valid solution is found.
+    *
+    * @note The computation uses the **local PC** for calculation.
+    *
+    * @example
+    * // First, configure the robot DH parameters
+    * double dh_a[6] = {...};
+    * double dh_d[6] = {...};
+    * double dh_alpha[6] = {...};
+    * robotDriver.setKDLconfig(dh_a, dh_d, dh_alpha);
+    *
+    * // Then compute inverse kinematics
+    * vector6d_t target_pose = {0.5, 0.0, 0.3, 0.0, 0.0, 0.0};
+    * vector6d_t near_joint = {0, 0, 0, 0, 0, 0};
+    * auto joint_ptr = robotDriver.getInverseKin(target_pose, near_joint);
+    * if(joint_ptr) {
+    *     std::cout << "IK solution: "
+    *               << (*joint_ptr)[0] << ", "
+    *               << (*joint_ptr)[1] << ", "
+    *               << (*joint_ptr)[2] << ", ..."
+    *               << std::endl;
+    * }
+    */
+    ELITE_EXPORT std::shared_ptr<vector6d_t> getInverseKin(const vector6d_t& pose, const vector6d_t& near_joint,
+                                                           const vector6d_t& tcp_offset_xyzRPY = {0, 0, 0, 0, 0, 0});
+    /**
+     * @brief Computes the forward kinematics using a local solver  on the PC.
+     *
+     * This function calculates the Cartesian pose of the robot's end-effector based on the given
+     * joint angles using **local computation on the PC**.
+     *
+     * @warning Before calling this function, you **must** configure the robot's DH parameters
+     *          using `setKDLconfig()`. Otherwise, the result is incorrect.
+     *
+     * @param joint A `vector6d_t` representing the robot's joint angles [J1..J6] in radians.
+     * @param tcp (Optional) A `vector6d_t` specifying the TCP (Tool Center Point) offset. Defaults to {0,0,0,0,0,0}.
+     *
+     * @return A `std::shared_ptr<vector6d_t>` containing the computed end-effector pose [x, y, z, Rx, Ry, Rz],
+     *         where x, y, z are in meters and Rx, Ry, Rz are in radians.
+     *         Returns `nullptr` if the forward kinematics calculation fails.
+     *
+     * @note Uses the **local PC** for computation.
+     */
+    ELITE_EXPORT std::shared_ptr<vector6d_t> getForwardKin(const vector6d_t& joints,
+                                                           const vector6d_t& tcp_offset_xyzRPY = {0, 0, 0, 0, 0, 0});
 };
 
 }  // namespace ELITE

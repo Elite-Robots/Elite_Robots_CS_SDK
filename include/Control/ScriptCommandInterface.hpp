@@ -2,12 +2,12 @@
 #define __SCRIPT_COMMAND_INTERFACE_HPP__
 
 #include <boost/asio.hpp>
+#include <iostream>
 #include <memory>
 #include <vector>
 #include "DataType.hpp"
 #include "ReversePort.hpp"
 #include "TcpServer.hpp"
-#include <iostream>
 
 namespace ELITE {
 
@@ -121,7 +121,6 @@ class ScriptCommandInterface : public ReversePort {
      */
 
     std::shared_ptr<vector6d_t> getInverseKinematics(const vector6d_t& pose, const vector6d_t& near_joint, const vector6d_t& tcp);
-
 
     /**
      * @brief This command calculates the forward kinematics solution based on the given joint angles and TCP (Tool Center Point).

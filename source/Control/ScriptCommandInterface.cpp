@@ -150,7 +150,6 @@ std::shared_ptr<vector6d_t> ScriptCommandInterface::getForwardKinematics(const v
     buffer[12] = htonl(static_cast<int32_t>(tcp[5] * CONTROL::COMMON_ZOOM_RATIO));
     if (write(buffer, sizeof(buffer)) <= 0) {
         return nullptr;
-
     }
     while (true) {
         std::lock_guard<std::mutex> lock(data_mutex_);
