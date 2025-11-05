@@ -43,6 +43,7 @@ set(
     source/Common/EliteException.cpp
     source/Common/SshUtils.cpp
     source/Common/RtUtils.cpp
+    source/Common/MathUtils.cpp
     source/Primary/PrimaryPort.cpp
     source/Primary/PrimaryPortInterface.cpp
     source/Primary/RobotConfPackage.cpp
@@ -99,6 +100,7 @@ set(
     Common/Utils.hpp
     Common/EndianUtils.hpp
     Common/StringUtils.hpp
+    Common/MathUtils.hpp
 )
 
 # Set output library default name

@@ -152,6 +152,19 @@ enum class FreedriveAction : int {
     FREEDRIVE_START = 1
 };
 
+// 4x4 Pose Matrix
+struct PoseMatrix {
+    std::array<std::array<double, 4>, 4> data{{
+        {1.0, 0.0, 0.0, 0.0},
+        {0.0, 1.0, 0.0, 0.0},
+        {0.0, 0.0, 1.0, 0.0},
+        {0.0, 0.0, 0.0, 1.0}
+    }};
+    PoseMatrix operator*(const PoseMatrix& other) const;
+    PoseMatrix& operator*=(const PoseMatrix& other);
+    PoseMatrix inverse() const;
+};
+
 using vector3d_t = std::array<double, 3>;
 using vector6d_t = std::array<double, 6>;
 using vector6int32_t = std::array<int32_t, 6>;
