@@ -35,5 +35,5 @@ foreach(SOURCE ${SOURCES})
         ${Boost_INCLUDE_DIRS}
     )
 endforeach()
-
-
+//添加kinematics_example子目录
+add_subdirectory(kinematics_example ${CMAKE_BINARY_DIR}/example/kinematics_example_build)
