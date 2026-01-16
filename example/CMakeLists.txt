@@ -12,8 +12,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     add_definitions(-DELITE_STATIC_LIBRARY)
 endif()
 
-find_package(Boost REQUIRED)
-
 foreach(SOURCE ${SOURCES})
     get_filename_component(ELITE_SDK_EXAMPLE_NAME ${SOURCE} NAME_WE)
     add_executable(${ELITE_SDK_EXAMPLE_NAME} ${SOURCE})
