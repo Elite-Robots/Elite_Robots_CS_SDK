@@ -6,6 +6,8 @@
 #ifndef __ELITE__STRING_UTILS_HPP__
 #define __ELITE__STRING_UTILS_HPP__
 
+#include <Elite/EliteOptions.hpp>
+
 #include <string>
 #include <vector>
 
@@ -24,7 +26,7 @@ class StringUtils {
      * @param delimiter
      * @return std::vector<std::string> string list
      */
-    static std::vector<std::string> splitString(const std::string& input, const std::string& delimiter);
+    ELITE_EXPORT static std::vector<std::string> splitString(const std::string& input, const std::string& delimiter);
 };
 
 }  // namespace ELITE

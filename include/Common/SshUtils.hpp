@@ -6,6 +6,8 @@
 #ifndef __ELITE__SSH_UTILS_HPP__
 #define __ELITE__SSH_UTILS_HPP__
 
+#include <Elite/EliteOptions.hpp>
+
 #include <functional>
 #include <string>
 
@@ -22,7 +24,7 @@ namespace SSH_UTILS {
  * @param cmd Want execute commands
  * @return std::string The result of the command.
  */
-std::string executeCommand(const std::string &host, const std::string &user, const std::string &password, const std::string &cmd);
+ELITE_EXPORT std::string executeCommand(const std::string &host, const std::string &user, const std::string &password, const std::string &cmd);
 
 /**
  * @brief Download files via SCP.
@@ -39,7 +41,7 @@ std::string executeCommand(const std::string &host, const std::string &user, con
  * @return true sucess
  * @return false fail
  */
-bool downloadFile(const std::string &server, const std::string &user, const std::string &password, const std::string &remote_path,
+ELITE_EXPORT bool downloadFile(const std::string &server, const std::string &user, const std::string &password, const std::string &remote_path,
                   const std::string &local_path, std::function<void(int f_z, int r_z, const char *err)> progress_cb);
 
 /**
@@ -57,7 +59,7 @@ bool downloadFile(const std::string &server, const std::string &user, const std:
  * @return true sucess
  * @return false fail
  */
-bool uploadFile(const std::string &server, const std::string &user, const std::string &password, const std::string &remote_path,
+ELITE_EXPORT bool uploadFile(const std::string &server, const std::string &user, const std::string &password, const std::string &remote_path,
                 const std::string &local_path, std::function<void(int f_z, int w_z, const char *err)> progress_cb);
 
 }  // namespace SSH_UTILS
