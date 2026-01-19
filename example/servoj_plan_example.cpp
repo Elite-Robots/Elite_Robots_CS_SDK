@@ -204,8 +204,6 @@ int main(int argc, char** argv) {
     }
     ELITE_LOG_INFO("External control script is running");
 
-    s_driver->startForceMode({ 1.1, 1.2, 1.3, 1.4, 1.5, 1.6}, { 1, 2, 3, 4, 5, 6}, { 1.1, 1.2, 1.3, 1.4, 1.5, 1.6}, ForceMode::MOTION, { 1.1, 1.2, 1.3, 1.4, 1.5, 1.6});
-
     bool positive_rotation = false;
     bool negative_rotation = false;
     vector6d_t actual_joint = s_rtsi_client->getActualJointPositions();
@@ -226,7 +224,7 @@ int main(int argc, char** argv) {
         
         for (auto& point: plan_joint) {
             target_joint[5] = point.pos;
-            if (!s_driver->writeServoj(target_joint, 100)) {
+            if (!s_driver->writeServoj(target_joint, 100, false)) {
                 ELITE_LOG_FATAL("Send servoj command to robot fail");
                 goto end;
             }

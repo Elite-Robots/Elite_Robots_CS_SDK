@@ -38,6 +38,9 @@
   - `RtsiIOInterface::getAcutalTCPVelocity()` -> `RtsiIOInterface::getActualTCPVelocity()`
   - `RtsiIOInterface::getAcutalTCPForce()` -> `RtsiIOInterface::getActualTCPForce()`
 
+### Removed
+- Remove the `queue_mode` parameter from `EliteDriver::writeServoj()`.
+
 ## [v1.2.0] - 2025-08-14
 
 ### Added

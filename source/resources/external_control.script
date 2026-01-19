@@ -2,45 +2,8 @@
 
 import threading
 import time
-import queue
 import os
 import signal
-
-class Queue(queue.Queue):
-    def __init__(self):
-        super().__init__()
-        self.size_condition = threading.Condition(self.mutex)
-
-    def put(self, item):
-        super().put(item)
-        with self.mutex:
-            self.size_condition.notify_all()
-
-    def get(self):
-        item = super().get()
-        with self.mutex:
-            self.size_condition.notify_all()
-            return item
-    
-    def peekTail(self):
-        with self.mutex:
-            if self._qsize() == 0:
-                return None
-            return self.queue[-1]
-
-    def waitUntilSize(self, target_size, timeout = None):
-        start_time = time.time()
-        with self.mutex:
-            while self._qsize() < target_size:
-                if timeout is not None:
-                    elapsed = time.time() - start_time
-                    if elapsed >= timeout:
-                        return self._qsize()
-                    remaining = timeout - elapsed
-                    self.size_condition.wait(remaining)
-                else:
-                    self.size_condition.wait()
-            return self._qsize()
 
 # Constants
 TRAJECTORY_RESULT_SUCCESS = 0
@@ -68,8 +31,6 @@ MODE_SPEEDL = 4
 MODE_POSE = 5
 MODE_FREEDRIVE = 6
 MODE_TOOL_IN_CONTACT = 7
-MODE_SERVOJ_QUEUE = 8
-MODE_POSE_QUEUE = 9
 
 STOPJ_ACCELERATION = {{STOP_J_REPLACE}}
 
@@ -109,10 +70,6 @@ SERVO_MUTEX = threading.Lock()
 # The value of the `t` parameter in the servoj command.
 SERVOJ_TIME = {{SERVOJ_TIME_REPLACE}}
 
-# The number of points pre-saved in the queue before starting the movement
-SERVOJ_QUEUE_PRE_RECV_SIZE = {{SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE}}
-SERVOJ_QUEUE_PRE_RECV_TIMEOUT = {{SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE}}
-
 #Global variables are also showed in the Teach pendants variable list
 global control_mode
 global script_command
@@ -125,7 +82,6 @@ global violation_popup_counter
 global cmd_servo_state
 global extrapolate_count
 global extrapolate_max_count
-global cmd_servo_joints_queue
 
 """
 @brief Function to verify whether the specified target can be reached within the defined time frame while staying within the robot's speed limits
@@ -245,22 +201,6 @@ def servoThread(run_mode):
     stopj(STOPJ_ACCELERATION)
 
 
-def setServoQueuePoint(joints):
-    global cmd_servo_joints_queue
-    cmd_servo_joints_queue.put(joints)
-
-def servoQueueThread(run_mode):
-    global control_mode
-    global cmd_servo_joints_queue
-    textmsg("ExternalControl: Starting servo queue thread")
-    # Wait for the queue to have enough storage before starting the movement
-    # Since the current position will be added to the queue as the first point before the thread starts, we need to add 1 here.
-    cmd_servo_joints_queue.waitUntilSize(SERVOJ_QUEUE_PRE_RECV_SIZE + 1, SERVOJ_QUEUE_PRE_RECV_TIMEOUT + SERVOJ_TIME)
-    while control_mode == run_mode:
-        joints = cmd_servo_joints_queue.get()
-        servoj(joints, t = SERVOJ_TIME, {{SERVO_J_REPLACE}})
-    textmsg("ExternalControl: servo thread queue ended")
-    stopj(STOPJ_ACCELERATION)
 
 def trajectoryClearPoints():
     global trajectory_point_num
@@ -364,8 +304,6 @@ violation_popup_counter = 0
 cmd_servo_state = SERVO_UNINITIALIZED
 extrapolate_count = 0
 extrapolate_max_count = 0
-cmd_servo_joints_queue = Queue()
-cmd_servo_joints_queue.put(get_actual_joint_positions())
 
 while control_mode > MODE_STOPPED:
     params_mult = socket_read_binary_integer(REVERSE_DATA_SIZE, "reverse_socket", read_timeout)
@@ -408,17 +346,9 @@ while control_mode > MODE_STOPPED:
             elif control_mode == MODE_SERVOJ:
                 cmd_servo_joints = get_actual_joint_positions()
                 move_thread_handle = start_thread(servoThread, (MODE_SERVOJ,))
-            elif control_mode == MODE_SERVOJ_QUEUE:
-                cmd_servo_joints_queue = Queue()
-                cmd_servo_joints_queue.put(get_actual_joint_positions())
-                move_thread_handle = start_thread(servoQueueThread, (MODE_SERVOJ_QUEUE,))
             elif control_mode == MODE_POSE:
                 cmd_servo_joints = get_actual_joint_positions()
                 move_thread_handle = start_thread(servoThread, (MODE_POSE,))
-            elif control_mode == MODE_POSE_QUEUE:
-                cmd_servo_joints_queue = Queue()
-                cmd_servo_joints_queue.put(get_actual_joint_positions())
-                move_thread_handle = start_thread(servoQueueThread, (MODE_POSE_QUEUE,))
             
         # Update the motion commands with new parameters
         if control_mode == MODE_SERVOJ:
@@ -456,15 +386,6 @@ while control_mode > MODE_STOPPED:
             elif params_mult[2] == FREEDRIVE_END:
                 textmsg("End freedrive mode")
                 end_freedrive_mode()
-        elif control_mode == MODE_SERVOJ_QUEUE:
-            joints = [params_mult[2]/ POS_ZOOM_RATIO, params_mult[3]/ POS_ZOOM_RATIO, params_mult[4]/ POS_ZOOM_RATIO, params_mult[5]/ POS_ZOOM_RATIO, params_mult[6]/ POS_ZOOM_RATIO, params_mult[7]/ POS_ZOOM_RATIO]
-            setServoQueuePoint(joints)
-        elif control_mode == MODE_POSE_QUEUE:
-            pose = [params_mult[2]/ POS_ZOOM_RATIO, params_mult[3]/ POS_ZOOM_RATIO, params_mult[4]/ POS_ZOOM_RATIO, params_mult[5]/ POS_ZOOM_RATIO, params_mult[6]/ POS_ZOOM_RATIO, params_mult[7]/ POS_ZOOM_RATIO]
-            tail_joint = cmd_servo_joints_queue.peekTail()
-            if tail_joint is None:
-                tail_joint = get_actual_joint_positions()
-            setServoQueuePoint(get_inverse_kin(pose, tail_joint))
 
     else:
         textmsg("Socket timed out waiting for command on reverse_socket. The script will exit now. Received " + str(params_mult[0]) + " integers. Expected " + str(REVERSE_DATA_SIZE) + ".")

@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
         }
         target_pose[2] += increment;
 
-        if (!s_driver->writeServoj(target_pose, 100, true, false)) {
+        if (!s_driver->writeServoj(target_pose, 100, true)) {
             ELITE_LOG_FATAL("Send servoj command to robot fail");
             return 1;
         }

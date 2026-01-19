@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
         }
         target_joint[5] += increment;
 
-        if (!s_driver->writeServoj(target_joint, 100)) {
+        if (!s_driver->writeServoj(target_joint, 100, false)) {
             ELITE_LOG_FATAL("Send servoj command to robot fail");
             return 1;
         }
