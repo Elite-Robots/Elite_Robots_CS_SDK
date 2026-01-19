@@ -75,7 +75,7 @@ EliteDriver::EliteDriver(
 
 ### ***控制关节位置***
 ```cpp
-bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false, bool queue_mode = false)
+bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false)
 ```
 - ***功能***
     向机器人发送伺服运动的指令。
@@ -86,9 +86,6 @@ bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false, 
     - timeout_ms：设置机器人读取下一条指令的超时时间，小于等于0时会无限等待。
 
     - cartesian：如果发送的点是笛卡尔的，则为true，如果是基于关节的，则为false。
-
-    - queue_mode：如果使用队列模式，为true，否则为false。
-        > 队列模式：此模式下，会把控制指令放到一个队列中然后依次执行，并且在开始运动前会预存指定数量的指令。注意，此行为会造成一定的延迟。
 
 - ***返回值***：指令发送成功返回 true，失败返回 false。
 

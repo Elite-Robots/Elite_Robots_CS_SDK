@@ -35,8 +35,6 @@ static const std::string TRAJECTORY_DATA_SIZE_REPLACE = "{{TRAJECTORY_DATA_SIZE_
 static const std::string SCRIPT_COMMAND_DATA_SIZE_REPLACE = "{{SCRIPT_COMMAND_DATA_SIZE_REPLACE}}";
 static const std::string STOP_J_REPLACE = "{{STOP_J_REPLACE}}";
 static const std::string SERVOJ_TIME_REPLACE = "{{SERVOJ_TIME_REPLACE}}";
-static const std::string SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE = "{{SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE}}";
-static const std::string SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE = "{{SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE}}";
 
 class EliteDriver::Impl {
    public:
@@ -148,22 +146,6 @@ void EliteDriver::Impl::scriptParamWrite(std::string& file_string, const EliteDr
     while (file_string.find(STOP_J_REPLACE) != std::string::npos) {
         file_string.replace(file_string.find(STOP_J_REPLACE), STOP_J_REPLACE.length(), std::to_string(config.stopj_acc));
     }
-
-    while (file_string.find(SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE) != std::string::npos) {
-        file_string.replace(file_string.find(SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE), SERVOJ_QUEUE_PRE_RECV_SIZE_REPLACE.length(),
-                            std::to_string(config.servoj_queue_pre_recv_size));
-    }
-
-    float servoj_queue_pre_recv_timeout = 0;
-    if (config.servoj_queue_pre_recv_timeout <= 0) {
-        servoj_queue_pre_recv_timeout = config.servoj_queue_pre_recv_size * config.servoj_time;
-    } else {
-        servoj_queue_pre_recv_timeout = config.servoj_queue_pre_recv_timeout;
-    }
-    while (file_string.find(SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE) != std::string::npos) {
-        file_string.replace(file_string.find(SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE), SERVOJ_QUEUE_PRE_RECV_TIMEOUT_REPLACE.length(),
-                            std::to_string(servoj_queue_pre_recv_timeout));
-    }
 }
 
 void EliteDriver::init(const EliteDriverConfig& config) {
@@ -246,19 +228,11 @@ EliteDriver::EliteDriver(const std::string& robot_ip, const std::string& local_i
 
 EliteDriver::~EliteDriver() { impl_.reset(); }
 
-bool EliteDriver::writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian, bool queue_mode) {
+bool EliteDriver::writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian){
     if (cartesian) {
-        if (queue_mode) {
-            return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_POSE_QUEUE, timeout_ms);
-        } else {
-            return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_POSE, timeout_ms);
-        }
+        return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_POSE, timeout_ms);
     } else {
-        if (queue_mode) {
-            return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_SERVOJ_QUEUE, timeout_ms);
-        } else {
-            return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_SERVOJ, timeout_ms);
-        }
+        return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_SERVOJ, timeout_ms);
     }
 }
 

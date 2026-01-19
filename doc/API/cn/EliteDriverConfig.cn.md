@@ -42,20 +42,6 @@ class EliteDriverConfig {
     // Acceleration [rad/s^2]. The acceleration of stopj motion.
     float stopj_acc = 8;
 
-    // When using the `writeServojQueue()` and `writeServojPoseQueue` interfaces, the number of points pre-saved in the queue before
-    // starting the movement.
-    int servoj_queue_pre_recv_size = 10;
-
-    // When using the `writeServoj()` and the `queue_mode` parameter is true, the timeout duration for the queue waiting for. (For
-    // detailed descriptions of the queue mode, please refer to the description of this interface in the API documentation.)
-    int servoj_queue_pre_recv_size = 10;
-
-    // When using the `writeServoj()` and the `queue_mode` parameter is true, the timeout duration for the queue waiting for
-    // pre-stored points. If the value is less than or equal to 0, the timeout duration will be calculated based on
-    // `servoj_queue_pre_recv_size * servoj_time`.(For detailed descriptions of the queue mode, please refer to the description of
-    // this interface in the API documentation.)
-    float servoj_queue_pre_recv_timeout = -1;
-
     EliteDriverConfig() = default;
     ~EliteDriverConfig() = default;
 };
@@ -117,11 +103,4 @@ class EliteDriverConfig {
     - 类型：`float`
     - 描述：停止运动的加速度 (rad/s²)。
 
-- servoj_queue_pre_recv_size
-    - 类型：`int`
-    - 描述：使用`writeServoj()`接口以及`queue_mode`参数为`true`时，在开始运动前，队列里预先保存的点位数量。（关于队列模式可参考[writeServoj()](./EliteDriver.cn.md#控制关节位置)接口中关于`queue_mode`的描述）。
-
-- servoj_queue_pre_recv_timeout
-    - 类型：`float`
-    - 描述：使用`writeServoj()`接口以及`queue_mode`参数为`true`时，预存点位的队列等待的超时时间。小于等于0时，会依据 servoj_queue_pre_recv_size * servoj_time 来计算超时时间。（关于队列模式可参考[writeServoj()](./EliteDriver.cn.md#控制关节位置)接口中关于`queue_mode`的描述）。
 

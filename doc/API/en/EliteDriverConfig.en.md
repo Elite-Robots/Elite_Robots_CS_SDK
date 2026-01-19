@@ -42,15 +42,6 @@ class EliteDriverConfig {
     // Acceleration [rad/s^2]. The acceleration of stopj motion.
     float stopj_acc = 8;
 
-    // When using the `writeServojQueue()` and `writeServojPoseQueue` interfaces, the number of points pre-saved in the queue before
-    // starting the movement.
-    int servoj_queue_pre_recv_size = 10;
-
-    // When using the `writeServojQueue()` and `writeServojPoseQueue` interfaces, the timeout duration for the queue waiting for
-    // pre-stored points. If the value is less than or equal to 0, the timeout duration will be calculated based on
-    // `servoj_queue_pre_recv_size * servoj_time`.
-    float servoj_queue_pre_recv_timeout = -1;
-
     EliteDriverConfig() = default;
     ~EliteDriverConfig() = default;
 };
@@ -110,11 +101,3 @@ This class serves as the configuration input when constructing the `EliteDriver`
 - `stopj_acc`
     - Type: `float`
     - Description: Acceleration for stopping motion (rad/s²).
-
-- servoj_queue_pre_recv_size
-    - Type: `int`
-    - Description: When using the `writeServoj()` interface with the `queue_mode` parameter set to `true`, this refers to the number of points pre-stored in the queue before motion starts. (For queue mode details, refer to the description of `queue_mode` in the [writeServoj()](./EliteDriver.en.md#control-joint-position) interface.)
-
-- servoj_queue_pre_recv_timeout
-    - Type: `float`
-    - Description:When using the `writeServoj()` interface with the `queue_mode` parameter set to `true`, the timeout duration for the queue waiting for pre-stored points. If the value is less than or equal to 0, the timeout duration will be calculated based on `servoj_queue_pre_recv_size * servoj_time`.(For queue mode details, refer to the description of `queue_mode` in the [writeServoj()](./EliteDriver.en.md#control-joint-position) interface.)

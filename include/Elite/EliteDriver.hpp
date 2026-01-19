@@ -57,16 +57,6 @@ class EliteDriverConfig {
     // Acceleration [rad/s^2]. The acceleration of stopj motion.
     float stopj_acc = 8;
 
-    // When using the `writeServoj()` and the `queue_mode` parameter is true, the timeout duration for the queue waiting for. (For
-    // detailed descriptions of the queue mode, please refer to the description of this interface in the API documentation.)
-    int servoj_queue_pre_recv_size = 10;
-
-    // When using the `writeServoj()` and the `queue_mode` parameter is true, the timeout duration for the queue waiting for
-    // pre-stored points. If the value is less than or equal to 0, the timeout duration will be calculated based on
-    // `servoj_queue_pre_recv_size * servoj_time`.(For detailed descriptions of the queue mode, please refer to the description of
-    // this interface in the API documentation.)
-    float servoj_queue_pre_recv_timeout = -1;
-
     EliteDriverConfig() = default;
     ~EliteDriverConfig() = default;
 };
@@ -130,12 +120,10 @@ class EliteDriver {
      * @param pos points
      * @param timeout_ms The read timeout configuration for the reverse socket running in the external control script on the robot.
      * @param cartesian True if the point sent is cartesian, false if joint-based
-     * @param queue_mode True if use queue mode, false if normal mode. (For detailed descriptions of the queue mode, please refer to
-     * the description of this interface in the API documentation.)
      * @return true Joint angles sent successfully.
      * @return false Fail to send joint angles.
      */
-    ELITE_EXPORT bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false, bool queue_mode = false);
+    ELITE_EXPORT bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false);
 
     /**
      * @brief Write speedl() velocity to robot

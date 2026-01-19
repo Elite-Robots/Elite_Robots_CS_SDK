@@ -72,7 +72,7 @@ Releases resources, and the socket will be closed during destruction.
 
 ### ***Control Joint Position***
 ```cpp
-bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false, bool queue_mode = false)
+bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false)
 ```
 - ***Function***
 Sends a servo motion instruction to the robot.
@@ -83,8 +83,6 @@ Sends a servo motion instruction to the robot.
 
     - `cartesian`: Set to `true` if sending Cartesian coordinates, `false` for joint-based positions.  
     
-    - `queue_mode`: Set to `true` to enable queue mode, `false` otherwise.  
-        > **Queue Mode**: In this mode, control commands are queued and executed sequentially. A specified number of commands are pre-stored before motion starts. Note that this introduces additional latency.
 - ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
 
 ---
