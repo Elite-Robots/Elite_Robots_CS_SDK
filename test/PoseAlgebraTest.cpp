@@ -6,13 +6,17 @@
 
 #include <array>
 #include <cstdlib>
-#include <filesystem>
+#include <fstream>
 #include <string>
 #include <iostream>
 
 using namespace ELITE;
 
 namespace {
+
+bool fileExists(const std::string& path) {
+    return static_cast<bool>(std::ifstream(path));
+}
 
 std::string findPluginLibraryPath(const std::string& lib_name) {
     const std::array<std::string, 5> candidates = {
@@ -26,7 +30,7 @@ std::string findPluginLibraryPath(const std::string& lib_name) {
     std::cout << "Looking for library: " << lib_name << std::endl;
     for (const auto& candidate : candidates) {
         std::cout << "  Checking: " << candidate << std::endl;
-        if (std::filesystem::exists(candidate)) {
+        if (fileExists(candidate)) {
             std::cout << "  Found at: " << candidate << std::endl;
             return candidate;
         }
