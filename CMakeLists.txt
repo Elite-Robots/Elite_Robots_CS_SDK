@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(elite_cs_series_sdk VERSION 1.3.0)
+project(elite_cs_series_sdk VERSION 1.4.0)
 
 option(ELITE_COMPILE_TESTS "Compile tests" OFF)
 option(ELITE_COMPILE_DOC "Compile documentation" OFF)

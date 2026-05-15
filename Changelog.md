@@ -3,10 +3,13 @@
 ## [Unrelease]
 
 ### Added
-- Introduce the new kinematics plugin infrastructure, including the `ClassLoader` module, registration helpers, documentation, and the `ELITE_COMPILE_KIN_PLUGIN` CMake option to drive optional builds.
+- Added the `ClassLoader` module, registration macros, and documentation to support plug-in functionality.
+- Added a kinematics plug-in; enable the `ELITE_COMPILE_KIN_PLUGIN` option during compilation to build this module.
+- Added a pose geometry plug-in; enable the `ELITE_COMPILE_POSE_ALG_PLUGIN` option during compilation to build this module.
 - Add configurable servo extrapolation and hold-lock parameters (`servoj_extrapolate_max_time`, `servoj_decelerate_time`, `servoj_hold_velocity_threshold`, `servoj_hold_stable_time`, and the corrected `servoj_lookahead_time`) to `EliteDriverConfig` along with the updated script integration and tuning guidance.
 - Add `EliteDriverReconstructTest` for testing struct reconstruction scenarios.
 - Add `TcpServerPortOccupyTest` for testing TCP server port occupation handling.
+- Added an overload of `EliteDriver::writeTrajectoryPoint()` to support setting velocity and acceleration parameters.
 
 ### Changed
 - Document the plugin build option, its dependency requirements (`orocos-kdl`, `Eigen3`, etc.), and the updated build status messages so users know how to enable the kinematics plugin.
