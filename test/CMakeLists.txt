@@ -19,7 +19,7 @@ foreach(SOURCE ${SOURCES})
         ${PROJECT_SOURCE_DIR}/include/Elite
         ${PROJECT_SOURCE_DIR}/include/Control
     )
-    if(ELITE_SDK_TEST_NAME STREQUAL "ClassLoaderPluginLifecycleTest")
+    if(ELITE_SDK_TEST_NAME STREQUAL "ClassLoaderPluginLifecycleTest" OR ELITE_SDK_TEST_NAME STREQUAL "PoseAlgebraTest")
         set(ELITE_SDK_TEST_LIB elite_cs_series_sdk::shared)
     else()
         set(ELITE_SDK_TEST_LIB elite_cs_series_sdk::static)

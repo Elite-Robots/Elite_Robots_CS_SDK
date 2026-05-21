@@ -10,6 +10,10 @@ if(ELITE_COMPILE_KIN_PLUGIN)
     add_definitions(-DELITE_COMPILE_KIN_PLUGIN)
 endif()
 
+if(ELITE_COMPILE_POSE_ALG_PLUGIN)
+    add_definitions(-DELITE_COMPILE_POSE_ALG_PLUGIN)
+endif()
+
 # Examples link the SDK shared library; ELITE_STATIC_LIBRARY must NOT be defined
 # for shared builds. If static linking is introduced in the future, gate
 # ELITE_STATIC_LIBRARY on that configuration.

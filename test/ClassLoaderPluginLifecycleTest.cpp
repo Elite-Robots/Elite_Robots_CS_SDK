@@ -5,12 +5,16 @@
 
 #include <array>
 #include <cstdlib>
-#include <filesystem>
+#include <fstream>
 #include <string>
 
 using namespace ELITE;
 
 namespace {
+
+bool fileExists(const std::string& path) {
+    return static_cast<bool>(std::ifstream(path));
+}
 
 std::string findPluginLibraryPath() {
     const std::array<std::string, 3> candidates = {
@@ -20,7 +24,7 @@ std::string findPluginLibraryPath() {
     };
 
     for (const auto& candidate : candidates) {
-        if (std::filesystem::exists(candidate)) {
+        if (fileExists(candidate)) {
             return candidate;
         }
     }

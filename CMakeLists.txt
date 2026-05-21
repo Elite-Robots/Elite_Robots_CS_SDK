@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(elite_cs_series_sdk VERSION 1.3.0)
+project(elite_cs_series_sdk VERSION 1.4.0)
 
 option(ELITE_COMPILE_TESTS "Compile tests" OFF)
 option(ELITE_COMPILE_DOC "Compile documentation" OFF)
 option(ELITE_COMPILE_EXAMPLES "Compile examples" OFF)
 option(ELITE_COMPILE_KIN_PLUGIN "Compile kinematics plugin" OFF)
+option(ELITE_COMPILE_POSE_ALG_PLUGIN "Compile pose algebra plugin" OFF)
 
 include(cmake/utils.cmake)
 
@@ -107,6 +108,7 @@ set(
     Common/StringUtils.hpp
     Common/SharedLibrary.hpp
     KinematicsBase/KinematicsBase.hpp
+    PoseAlgebraBase/PoseAlgebraBase.hpp
     ClassLoader/ClassRegistry.hpp
     ClassLoader/ClassLoader.hpp
     ClassLoader/ClassRegisterMacro.hpp
@@ -135,10 +137,10 @@ add_library(${PROJECT_NAME}_STATIC STATIC ${ELITE_LIB_SOURCE_FILE})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(${PROJECT_NAME}_SHARED PRIVATE ELITE_EXPORT_LIBRARY)
-    target_compile_definitions(${PROJECT_NAME}_STATIC PRIVATE ELITE_EXPORT_LIBRARY)
+    target_compile_definitions(${PROJECT_NAME}_STATIC PUBLIC ELITE_STATIC_LIBRARY)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_compile_definitions(${PROJECT_NAME}_SHARED PRIVATE ELITE_EXPORT_LIBRARY)
-    target_compile_definitions(${PROJECT_NAME}_STATIC PRIVATE ELITE_EXPORT_LIBRARY)
+    target_compile_definitions(${PROJECT_NAME}_SHARED PUBLIC ELITE_EXPORT_LIBRARY)
+    target_compile_definitions(${PROJECT_NAME}_STATIC PUBLIC ELITE_STATIC_LIBRARY)
 endif()
 
 define_rel_file_macro(${PROJECT_NAME}_SHARED)
@@ -157,8 +159,8 @@ set_target_properties(
 )
 target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_LIB_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_LIB_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME}_SHARED PRIVATE ${THIRDPARTY_LIB})
-target_link_libraries(${PROJECT_NAME}_STATIC PRIVATE ${THIRDPARTY_LIB})
+target_link_libraries(${PROJECT_NAME}_SHARED PRIVATE Boost::boost ${THIRDPARTY_LIB})
+target_link_libraries(${PROJECT_NAME}_STATIC PRIVATE Boost::boost ${THIRDPARTY_LIB})
 
 foreach(header ${ELITE_HEADER_FILES})
     get_filename_component(header_name ${header} NAME)
@@ -195,6 +197,12 @@ endif()
 if(ELITE_COMPILE_KIN_PLUGIN)
     message(STATUS "Compile the kinematics plugin")
     add_subdirectory(plugin/kinematics ${CMAKE_BINARY_DIR}/kin_plugin/)
+endif()
+
+# Compile pose algebra plugin
+if(ELITE_COMPILE_POSE_ALG_PLUGIN)
+    message(STATUS "Compile the pose algebra plugin")
+    add_subdirectory(plugin/PoseAlgebra ${CMAKE_BINARY_DIR}/pose_alg_plugin/)
 endif()
 
 string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
@@ -248,6 +256,7 @@ message(STATUS "ELITE_COMPILE_TESTS                 ${ELITE_COMPILE_TESTS}")
 message(STATUS "ELITE_COMPILE_DOC                   ${ELITE_COMPILE_DOC}")
 message(STATUS "ELITE_COMPILE_EXAMPLES              ${ELITE_COMPILE_EXAMPLES}")
 message(STATUS "ELITE_COMPILE_KIN_PLUGIN            ${ELITE_COMPILE_KIN_PLUGIN}")
+message(STATUS "ELITE_COMPILE_POSE_ALG_PLUGIN       ${ELITE_COMPILE_POSE_ALG_PLUGIN}")
 
 find_package(ament_cmake QUIET)
 option(ELITE_ROS2_BUILD "Build as a ROS 2 (ament_cmake) package" ${ament_cmake_FOUND})

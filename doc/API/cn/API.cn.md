@@ -27,3 +27,5 @@
 - [插件](./ClassLoader.cn.md)
 
 - [运动学](./KinematicsBase.cn.md)
+
+- [位姿代数](./PoseAlgebraBase.cn.md)

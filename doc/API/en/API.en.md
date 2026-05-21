@@ -27,3 +27,5 @@ Applicable SDK version: ***v1.3.0***
 - [Plugin](./ClassLoader.en.md)
 
 - [Kinematics](./KinematicsBase.en.md)
+
+- [Pose algebra](./PoseAlgebraBase.en.md)

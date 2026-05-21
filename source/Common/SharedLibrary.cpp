@@ -79,7 +79,7 @@ load_fail:
     }
 
     path.resize(utf8_size, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, wpath.data(), static_cast<int>(chars_copied), path.data(), utf8_size, nullptr, nullptr);
+    WideCharToMultiByte(CP_UTF8, 0, wpath.data(), static_cast<int>(chars_copied), &path[0], utf8_size, nullptr, nullptr);
     lib_path_ = path;
 
     if (lib_path_.empty()) {
