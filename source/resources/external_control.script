@@ -50,6 +50,11 @@ FREEDRIVE_START = 1
 FREEDRIVE_NOOP = 0
 FREEDRIVE_END = -1
 
+FORCE_MODE_POINT = 1
+FORCE_MODE_FIX = 2
+FORCE_MODE_MOTION = 3
+FORCE_MODE_TCP_FIX = 1000
+
 # Data size of the message received on the reverse interface
 REVERSE_DATA_SIZE = {{REVERSE_DATA_SIZE_REPLACE}}
 TRAJECTORY_DATA_SIZE = {{TRAJECTORY_DATA_SIZE_REPLACE}}
@@ -361,11 +366,15 @@ def scriptCommands():
                 set_tool_voltage(int(tool_voltage))
             elif script_command == SCRIPT_CMD_START_FORCE_MODE:
                 task_frame = [raw_command[2] / COMMON_ZOOM_RATIO, raw_command[3] / COMMON_ZOOM_RATIO, raw_command[4] / COMMON_ZOOM_RATIO, raw_command[5] / COMMON_ZOOM_RATIO, raw_command[6] / COMMON_ZOOM_RATIO, raw_command[7] / COMMON_ZOOM_RATIO]
-                selection_vector = [raw_command[8] / COMMON_ZOOM_RATIO, raw_command[9] / COMMON_ZOOM_RATIO, raw_command[10] / COMMON_ZOOM_RATIO, raw_command[11] / COMMON_ZOOM_RATIO, raw_command[12] / COMMON_ZOOM_RATIO, raw_command[13] / COMMON_ZOOM_RATIO]
+                selection_vector = [raw_command[8], raw_command[9], raw_command[10], raw_command[11], raw_command[12], raw_command[13]]
                 wrench = [raw_command[14] / COMMON_ZOOM_RATIO, raw_command[15] / COMMON_ZOOM_RATIO, raw_command[16] / COMMON_ZOOM_RATIO, raw_command[17] / COMMON_ZOOM_RATIO, raw_command[18] / COMMON_ZOOM_RATIO, raw_command[19] / COMMON_ZOOM_RATIO]
                 force_type = raw_command[20]
                 force_limits = [raw_command[21] / COMMON_ZOOM_RATIO, raw_command[22] / COMMON_ZOOM_RATIO, raw_command[23] / COMMON_ZOOM_RATIO, raw_command[24] / COMMON_ZOOM_RATIO, raw_command[25] / COMMON_ZOOM_RATIO, raw_command[26] / COMMON_ZOOM_RATIO]
-                force_mode(task_frame, selection_vector, wrench, force_type, force_limits)
+                if force_type == FORCE_MODE_TCP_FIX:
+                    # The meaning of FORCE_MODE_TCP_FIX is that the task_frame parameter of force_mode() is set to 'TCP', and the type parameter is FORCE_MODE_FIX.
+                    force_mode("TCP", selection_vector, wrench, FORCE_MODE_FIX, force_limits)
+                else:
+                    force_mode(task_frame, selection_vector, wrench, force_type, force_limits)
             elif script_command == SCRIPT_CMD_END_FORCE_MODE:
                 end_force_mode()
 

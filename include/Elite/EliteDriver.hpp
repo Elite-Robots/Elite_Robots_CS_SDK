@@ -323,6 +323,30 @@ class EliteDriver {
                                      const vector6d_t& wrench, const ForceMode& mode, const vector6d_t& limits);
 
     /**
+     * @brief This command is used to enable force control mode and the robot will be controlled in the force control mode.
+     *
+     * @param selection_vector a 6-dimensional vector consisting of 0 and 1 that defines the compliant axis in the force frame.
+     * 1 represents the axis is compliant and 0 represents the axis is non compliant.
+     * @param wrench The force/torque applied to the environment by the robot.
+     * The robot moves/rotates along the compliant axis to adjust its pose to achieve the target force/torque.
+     * The format is [Fx,Fy,Fz,Mx,My,Mz], where Fx, Fy, and Fz represent the force applied along the
+     * compliant axis with the unit of N, Mx, My, and Mz represent the torque applied about the
+     * compliant axis with the unit of Nm. This value is invalid for the non-compliant axis. Due to the
+     * safety restrictions of joints, the actual applied force/torque is lower than the set one. In the
+     * separate thread, the command get_tcp_force may be used to read the actual force/torque applied to the environment.
+     * @param mode The parameter for force control mode
+     * @param limits The parameter for the speed limit. The format is [Vx,Vy,Vz,ωx,ωy,ωz],
+     * where Vx, Vy, and Vz represent the maximum speed for TCP along
+     * the compliant axis with the unit of m/s, ωx, ωy, and ωz represent the maximum speed for TCP
+     * about the compliant axis with the unit of rad/s. This parameter is invalid for the non-compliant
+     * axis whose trajectory will be as set before.
+     * @return true success
+     * @return false fail
+     */
+    ELITE_EXPORT bool startForceMode(const vector6int32_t& selection_vector, const vector6d_t& wrench, const ForceMode& mode,
+                                     const vector6d_t& limits);
+
+    /**
      * @brief This command is used to disable the force control mode. It also will be performed when the procedure ends.
      *
      * @return true success

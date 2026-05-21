@@ -339,6 +339,15 @@ bool EliteDriver::startForceMode(const vector6d_t& reference_frame, const vector
     return impl_->script_command_server_->startForceMode(reference_frame, selection_vector, wrench, mode, limits);
 }
 
+bool EliteDriver::startForceMode(const vector6int32_t& selection_vector, const vector6d_t& wrench, const ForceMode& mode,
+                                 const vector6d_t& limits) {
+    if(mode == ForceMode::MOTION || mode == ForceMode::POINT || mode == ForceMode::FIX) {
+        ELITE_LOG_ERROR("startForceMode without reference_frame not allowed for MOTION, POINT, or FIX mode.");
+        return false;
+    }
+    return impl_->script_command_server_->startForceMode(vector6d_t(), selection_vector, wrench, mode, limits);
+}
+
 bool EliteDriver::endForceMode() { return impl_->script_command_server_->endForceMode(); }
 
 bool EliteDriver::sendScript(const std::string& script) {

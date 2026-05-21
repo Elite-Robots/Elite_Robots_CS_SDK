@@ -127,16 +127,16 @@ enum class ToolVoltage : int {
 };
 
 enum class ForceMode : int {
-    /// The force frame is the force reference frame.
-    FIX,
     /// The Y-axis in the force frame points from the TCP
     /// origin of the robot to the origin of the force reference frame.
-    POINT,
+    POINT = 1,
+    /// The force frame is the force reference frame.
+    FIX = 2,
     /// The X-axis in the force frame is the projection of the TCP motion direction
     /// vector in the X-Y plane belonging to the force reference frame.
-    MOTION,
+    MOTION = 3,
     /// The force frame is the TCP frame.
-    TCP,
+    TCP_FIX = 1000,
 };
 
 enum class FreedriveAction : int {

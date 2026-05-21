@@ -48,7 +48,7 @@ bool ScriptCommandInterface::startForceMode(const vector6d_t& task_frame, const 
         bp++;
     }
     for (auto& sv : selection_vector) {
-        *bp = htonl(sv * CONTROL::COMMON_ZOOM_RATIO);
+        *bp = htonl(sv);
         bp++;
     }
     for (auto& wr : wrench) {
