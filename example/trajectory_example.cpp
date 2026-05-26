@@ -6,11 +6,14 @@
 #include <Elite/Log.hpp>
 #include <Elite/RtsiIOInterface.hpp>
 
+#include <atomic>
 #include <boost/program_options.hpp>
 #include <future>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <thread>
+#include <vector>
 
 using namespace ELITE;
 namespace po = boost::program_options;
@@ -18,12 +21,16 @@ namespace po = boost::program_options;
 class TrajectoryControl {
    private:
     std::unique_ptr<EliteDriver> driver_;
-    
     std::unique_ptr<DashboardClient> dashboard_;
     EliteDriverConfig config_;
+    std::atomic<int> current_point_{-1};
+    std::atomic<int> total_points_{0};
+    std::atomic<int> last_result_{-1};
+    std::mutex feedback_mutex_;
+    TrajectoryMotionFeedback last_feedback_;
 
    public:
-    TrajectoryControl(const EliteDriverConfig& config) {
+    explicit TrajectoryControl(const EliteDriverConfig& config) {
         config_ = config;
         driver_ = std::make_unique<EliteDriver>(config);
         dashboard_ = std::make_unique<DashboardClient>();
@@ -40,7 +47,9 @@ class TrajectoryControl {
         if (dashboard_) {
             dashboard_->disconnect();
         }
-        driver_->stopControl();
+        if (driver_) {
+            driver_->stopControl();
+        }
     }
 
     bool startControl() {
@@ -80,41 +89,96 @@ class TrajectoryControl {
         return true;
     }
 
-    bool moveTrajectory(const std::vector<vector6d_t>& target_points, float blend_radius, bool is_cartesian, float speed,
+    bool moveTrajectoryByTime(const std::vector<vector6d_t>& target_points, float point_time, float blend_radius, bool is_cartesian) {
+        return moveTrajectory(target_points, point_time, blend_radius, is_cartesian, 0.0f, 0.0f);
+    }
+
+    bool moveTrajectoryBySpeed(const std::vector<vector6d_t>& target_points, float blend_radius, bool is_cartesian, float speed,
+                               float acceleration) {
+        return moveTrajectory(target_points, 0.0f, blend_radius, is_cartesian, speed, acceleration);
+    }
+
+    bool moveToJointTargetBySpeed(const vector6d_t& point, float speed, float acceleration) {
+        return moveTrajectoryBySpeed({point}, 0.0f, false, speed, acceleration);
+    }
+
+   private:
+    bool moveTrajectory(const std::vector<vector6d_t>& target_points, float point_time, float blend_radius, bool is_cartesian, float speed,
                         float acceleration) {
+        current_point_.store(-1);
+        total_points_.store(0);
+        last_result_.store(-1);
+
         std::promise<TrajectoryMotionResult> move_done_promise;
         driver_->setTrajectoryResultCallback([&](TrajectoryMotionResult result) { move_done_promise.set_value(result); });
+        driver_->setTrajectoryFeedbackCallback([&](const TrajectoryMotionFeedback& feedback) {
+            {
+                std::lock_guard<std::mutex> lock(feedback_mutex_);
+                last_feedback_ = feedback;
+            }
+
+            if (feedback.message_type == TrajectoryFeedbackMessageType::ACTIVE_POINT) {
+                current_point_.store(feedback.point_index);
+                total_points_.store(feedback.total_points);
+                ELITE_LOG_INFO("Trajectory point %d/%d is active", feedback.point_index + 1, feedback.total_points);
+                ELITE_LOG_INFO("Active point target = [%lf, %lf, %lf, %lf, %lf, %lf]", feedback.point[0], feedback.point[1],
+                               feedback.point[2], feedback.point[3], feedback.point[4], feedback.point[5]);
+            } else if (feedback.message_type == TrajectoryFeedbackMessageType::POINT_DONE) {
+                current_point_.store(feedback.point_index);
+                total_points_.store(feedback.total_points);
+                ELITE_LOG_INFO("Trajectory point %d/%d is done", feedback.point_index + 1, feedback.total_points);
+            } else if (feedback.message_type == TrajectoryFeedbackMessageType::RESULT) {
+                last_result_.store(feedback.result);
+                ELITE_LOG_INFO("Trajectory result frame received: %d", feedback.result);
+            }
+        });
 
         ELITE_LOG_INFO("Trajectory motion start");
-        if(!driver_->writeTrajectoryControlAction(ELITE::TrajectoryControlAction::START, target_points.size(), 200)) {
+        if (!driver_->writeTrajectoryControlAction(ELITE::TrajectoryControlAction::START, target_points.size(), 200)) {
             ELITE_LOG_ERROR("Failed to start trajectory motion");
             return false;
         }
 
-        for (const auto& joints : target_points) {
-            if (!driver_->writeTrajectoryPoint(joints, blend_radius, is_cartesian, speed, acceleration)) {
+        for (const auto& point : target_points) {
+            bool point_sent = false;
+            if (point_time > 0.0f) {
+                point_sent = driver_->writeTrajectoryPoint(point, point_time, blend_radius, is_cartesian);
+            } else {
+                point_sent = driver_->writeTrajectoryPoint(point, blend_radius, is_cartesian, speed, acceleration);
+            }
+
+            if (!point_sent) {
                 ELITE_LOG_ERROR("Failed to write trajectory point");
                 return false;
             }
-            // Send NOOP command to avoid timeout.
-            if(!driver_->writeTrajectoryControlAction(ELITE::TrajectoryControlAction::NOOP, 0, 200)) {
+            if (!driver_->writeTrajectoryControlAction(ELITE::TrajectoryControlAction::NOOP, 0, 200)) {
                 ELITE_LOG_ERROR("Failed to send NOOP command");
                 return false;
             }
         }
 
         std::future<TrajectoryMotionResult> move_done_future = move_done_promise.get_future();
+        int last_logged_point = -2;
         while (move_done_future.wait_for(std::chrono::milliseconds(50)) != std::future_status::ready) {
-            // Wait for the trajectory motion to complete, and send NOOP command to avoid timeout.
-            if(!driver_->writeTrajectoryControlAction(ELITE::TrajectoryControlAction::NOOP, 0, 200)) {
+            int current_point = current_point_.load();
+            int total_points = total_points_.load();
+            if (current_point != last_logged_point && current_point >= 0 && total_points > 0) {
+                TrajectoryMotionFeedback feedback = getLastFeedback();
+                ELITE_LOG_INFO("Cached progress says current point is %d/%d", current_point + 1, total_points);
+                ELITE_LOG_INFO("Cached point value = [%lf, %lf, %lf, %lf, %lf, %lf]", feedback.point[0], feedback.point[1],
+                               feedback.point[2], feedback.point[3], feedback.point[4], feedback.point[5]);
+                last_logged_point = current_point;
+            }
+            if (!driver_->writeTrajectoryControlAction(ELITE::TrajectoryControlAction::NOOP, 0, 200)) {
                 ELITE_LOG_ERROR("Failed to send NOOP command");
                 return false;
             }
         }
+
         auto result = move_done_future.get();
         ELITE_LOG_INFO("Trajectory motion completed with result: %d", result);
 
-        if(!driver_->writeIdle(0)) {
+        if (!driver_->writeIdle(0)) {
             ELITE_LOG_ERROR("Failed to write idle command");
             return false;
         }
@@ -122,14 +186,16 @@ class TrajectoryControl {
         return result == TrajectoryMotionResult::SUCCESS;
     }
 
-    bool moveTo(const vector6d_t& point, bool is_cartesian, float speed, float acceleration) {
-        return moveTrajectory({point}, 0, is_cartesian, speed, acceleration);
+    TrajectoryMotionFeedback getLastFeedback() {
+        std::lock_guard<std::mutex> lock(feedback_mutex_);
+        return last_feedback_;
     }
 };
 
 int main(int argc, const char** argv) {
     constexpr float kJointSpeed = 0.5f;
     constexpr float kJointAcceleration = 0.8f;
+    constexpr float kPointTime = 3.0f;
     constexpr float kCartesianSpeed = 0.15f;
     constexpr float kCartesianAcceleration = 0.3f;
 
@@ -180,7 +246,7 @@ int main(int argc, const char** argv) {
     ELITE_LOG_INFO("Successfully connected to the RTSI");
 
     ELITE_LOG_INFO("Starting trajectory control...");
-    if(!trajectory_control->startControl()) {
+    if (!trajectory_control->startControl()) {
         ELITE_LOG_FATAL("Failed to start trajectory control.");
         return 1;
     }
@@ -191,19 +257,17 @@ int main(int argc, const char** argv) {
 
     ELITE_LOG_INFO("Moving joints to target: [%lf, %lf, %lf, %lf, %lf, %lf]",
                    actual_joints[0], actual_joints[1], actual_joints[2], actual_joints[3], actual_joints[4], actual_joints[5]);
-    if(!trajectory_control->moveTo(actual_joints, false, kJointSpeed, kJointAcceleration)) {
+    if (!trajectory_control->moveToJointTargetBySpeed(actual_joints, kJointSpeed, kJointAcceleration)) {
         ELITE_LOG_FATAL("Failed to move joints to target.");
         return 1;
     }
     ELITE_LOG_INFO("Joints moved to target");
-
 
     vector6d_t actual_pose = rtsi_client->getActualTCPPose();
     std::vector<vector6d_t> trajectory;
 
     actual_pose[2] -= 0.2;
     trajectory.push_back(actual_pose);
-
 
     actual_pose[1] -= 0.2;
     trajectory.push_back(actual_pose);
@@ -212,12 +276,19 @@ int main(int argc, const char** argv) {
     actual_pose[2] += 0.2;
     trajectory.push_back(actual_pose);
 
-    ELITE_LOG_INFO("Moving joints to target");
-    if(!trajectory_control->moveTrajectory(trajectory, 0, true, kCartesianSpeed, kCartesianAcceleration)) {
-        ELITE_LOG_FATAL("Failed to move trajectory.");
+    ELITE_LOG_INFO("Executing trajectory with time control, %zu points", trajectory.size());
+    if (!trajectory_control->moveTrajectoryByTime(trajectory, kPointTime, 0.0f, true)) {
+        ELITE_LOG_FATAL("Failed to move trajectory with time control.");
         return 1;
     }
-    ELITE_LOG_INFO("Joints moved to target");
+    ELITE_LOG_INFO("Time-controlled trajectory completed");
+
+    ELITE_LOG_INFO("Executing trajectory with speed control, %zu points", trajectory.size());
+    if (!trajectory_control->moveTrajectoryBySpeed(trajectory, 0.0f, true, kCartesianSpeed, kCartesianAcceleration)) {
+        ELITE_LOG_FATAL("Failed to move trajectory with speed control.");
+        return 1;
+    }
+    ELITE_LOG_INFO("Speed-controlled trajectory completed");
 
     return 0;
 }

@@ -23,7 +23,7 @@ enum class TrajectoryMotionType : int {
 class TrajectoryInterface : public ReversePort {
    public:
     static const int TRAJECTORY_MESSAGE_LEN = 21;
-    static const int TRAJECTORY_FEEDBACK_LEN = 11;
+    static const int TRAJECTORY_FEEDBACK_LEN = 10;
 
     TrajectoryInterface() = delete;
 

@@ -10,7 +10,6 @@ TRAJECTORY_RESULT_SUCCESS = 0
 TRAJECTORY_RESULT_CANCELED = 1
 TRAJECTORY_RESULT_FAILURE = 2
 
-TRAJECTORY_FEEDBACK_VERSION = 1
 TRAJECTORY_FEEDBACK_MESSAGE_ACTIVE_POINT = 1
 TRAJECTORY_FEEDBACK_MESSAGE_POINT_DONE = 2
 TRAJECTORY_FEEDBACK_MESSAGE_RESULT = 3
@@ -103,10 +102,11 @@ global servo_hold_locked
 global cmd_trajectory_blend_radius
 global cmd_trajectory_point
 global trajectory_total_points
+global trajectory_active_point_index
 trajectory_total_points = 0
+trajectory_active_point_index = -1
 
 def sendTrajectoryFeedback(message_type, point_index, total_points, result, point):
-    socket_send_int(TRAJECTORY_FEEDBACK_VERSION, "trajectory_socket")
     socket_send_int(message_type, "trajectory_socket")
     socket_send_int(point_index, "trajectory_socket")
     socket_send_int(total_points, "trajectory_socket")
@@ -171,6 +171,7 @@ def trajectoryThread():
     global cmd_trajectory_blend_radius
     global cmd_trajectory_point
     global trajectory_total_points
+    global trajectory_active_point_index
     blend_radius = int()
     while trajectory_point_num > 0:
         raw_point = socket_read_binary_integer(TRAJECTORY_DATA_SIZE, "trajectory_socket", 0.5)
@@ -186,6 +187,7 @@ def trajectoryThread():
         if raw_point[0] > 0:
             point = [raw_point[1] / POS_ZOOM_RATIO, raw_point[2] / POS_ZOOM_RATIO, raw_point[3] / POS_ZOOM_RATIO, raw_point[4] / POS_ZOOM_RATIO, raw_point[5] / POS_ZOOM_RATIO, raw_point[6] / POS_ZOOM_RATIO]
             cmd_trajectory_point = point
+            trajectory_active_point_index = current_point_index
             sendTrajectoryFeedback(TRAJECTORY_FEEDBACK_MESSAGE_ACTIVE_POINT, current_point_index, trajectory_total_points, -1, point)
 
             speed = raw_point[7] / COMMON_ZOOM_RATIO
@@ -407,6 +409,8 @@ cmd_speed_joint = [0, 0, 0, 0, 0, 0]
 control_mode = MODE_UNINITIALIZED
 steptime = get_steptime()
 trajectory_point_num = 0
+trajectory_active_point_index = -1
+cmd_trajectory_point = [0, 0, 0, 0, 0, 0]
 cmd_servo_joints = get_actual_joint_positions()
 script_command_thread_handle = start_thread(scriptCommands, ())
 move_thread_handle = 0
@@ -433,7 +437,7 @@ while control_mode > MODE_STOPPED:
                 trajectory_thread_handle = 0
                 if trajectory_point_num > 0:
                     stopj(STOPJ_ACCELERATION)
-                    sendTrajectoryFeedback(TRAJECTORY_FEEDBACK_MESSAGE_RESULT, trajectory_total_points - trajectory_point_num, trajectory_total_points, TRAJECTORY_RESULT_CANCELED, cmd_trajectory_point)
+                    sendTrajectoryFeedback(TRAJECTORY_FEEDBACK_MESSAGE_RESULT, trajectory_active_point_index, trajectory_total_points, TRAJECTORY_RESULT_CANCELED, cmd_trajectory_point)
                     trajectoryClearPoints()
             elif control_mode == MODE_FREEDRIVE:
                 textmsg("End freedrive mode")
@@ -486,13 +490,14 @@ while control_mode > MODE_STOPPED:
                 trajectoryClearPoints()
                 trajectory_point_num = params_mult[3]
                 trajectory_total_points = trajectory_point_num
+                trajectory_active_point_index = -1
                 trajectory_thread_handle = start_thread(trajectoryThread, ())
             elif params_mult[2] == TRAJECTORY_ACTION_CANCEL:
                 textmsg("Trajectory cancel received")
                 stop_thread(trajectory_thread_handle)
                 join_thread(trajectory_thread_handle)
                 trajectory_thread_handle = 0
-                sendTrajectoryFeedback(TRAJECTORY_FEEDBACK_MESSAGE_RESULT, trajectory_total_points - trajectory_point_num, trajectory_total_points, TRAJECTORY_RESULT_CANCELED, cmd_trajectory_point)
+                sendTrajectoryFeedback(TRAJECTORY_FEEDBACK_MESSAGE_RESULT, trajectory_active_point_index, trajectory_total_points, TRAJECTORY_RESULT_CANCELED, cmd_trajectory_point)
                 trajectoryClearPoints()
                 stopj(STOPJ_ACCELERATION)
         elif control_mode == MODE_FREEDRIVE:

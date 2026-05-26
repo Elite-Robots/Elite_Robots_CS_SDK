@@ -25,13 +25,12 @@ TrajectoryInterface::TrajectoryInterface(int port, std::shared_ptr<TcpServer::St
         int32_t raw_feedback[TRAJECTORY_FEEDBACK_LEN] = {0};
         std::memcpy(raw_feedback, data, sizeof(raw_feedback));
         TrajectoryMotionFeedback feedback;
-        feedback.version = decode_int32(raw_feedback[0]);
-        feedback.message_type = static_cast<TrajectoryFeedbackMessageType>(decode_int32(raw_feedback[1]));
-        feedback.point_index = decode_int32(raw_feedback[2]);
-        feedback.total_points = decode_int32(raw_feedback[3]);
-        feedback.result = decode_int32(raw_feedback[4]);
+        feedback.message_type = static_cast<TrajectoryFeedbackMessageType>(decode_int32(raw_feedback[0]));
+        feedback.point_index = decode_int32(raw_feedback[1]);
+        feedback.total_points = decode_int32(raw_feedback[2]);
+        feedback.result = decode_int32(raw_feedback[3]);
         for (size_t i = 0; i < feedback.point.size(); ++i) {
-            feedback.point[i] = static_cast<double>(decode_int32(raw_feedback[5 + i])) / CONTROL::POS_ZOOM_RATIO;
+            feedback.point[i] = static_cast<double>(decode_int32(raw_feedback[4 + i])) / CONTROL::POS_ZOOM_RATIO;
         }
 
         if (motion_feedback_func_) {

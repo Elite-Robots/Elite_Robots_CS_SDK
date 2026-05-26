@@ -160,7 +160,6 @@ using vector6int32_t = std::array<int32_t, 6>;
 using vector6uint32_t = std::array<uint32_t, 6>;
 
 struct TrajectoryMotionFeedback {
-    int32_t version = 0;
     TrajectoryFeedbackMessageType message_type = TrajectoryFeedbackMessageType::RESULT;
     int32_t point_index = -1;
     int32_t total_points = 0;
