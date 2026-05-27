@@ -1,7 +1,9 @@
 #include <gtest/gtest.h>
 #include <boost/asio.hpp>
+#include <condition_variable>
 #include <cmath>
 #include <memory>
+#include <mutex>
 #include <thread>
 
 #include "TrajectoryInterface.hpp"
@@ -80,10 +82,26 @@ TEST(TRAJECTORY_INTERFACE, write_point) {
 
     TrajectoryMotionFeedback feedback;
     TrajectoryMotionResult motion_result = TrajectoryMotionResult::FAILURE;
+    std::mutex callback_mutex;
+    std::condition_variable callback_cv;
+    bool has_feedback = false;
+    bool has_result = false;
     trajectory_ins->setMotionResultCallback([&](TrajectoryMotionResult result) {
-        motion_result = result;
+        {
+            std::lock_guard<std::mutex> lock(callback_mutex);
+            motion_result = result;
+            has_result = true;
+        }
+        callback_cv.notify_one();
     });
-    trajectory_ins->setMotionFeedbackCallback([&](const TrajectoryMotionFeedback& value) { feedback = value; });
+    trajectory_ins->setMotionFeedbackCallback([&](const TrajectoryMotionFeedback& value) {
+        {
+            std::lock_guard<std::mutex> lock(callback_mutex);
+            feedback = value;
+            has_feedback = true;
+        }
+        callback_cv.notify_one();
+    });
 
     trajectory_ins->writeTrajectoryPoint({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, 100, 1.230, true);
 
@@ -108,7 +126,12 @@ TEST(TRAJECTORY_INTERFACE, write_point) {
 
     vector6d_t point{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
     send_feedback_frame(*client, (int)TrajectoryFeedbackMessageType::ACTIVE_POINT, 0, 1, -1, point);
-    std::this_thread::sleep_for(50ms);
+    {
+        std::unique_lock<std::mutex> lock(callback_mutex);
+        EXPECT_TRUE(callback_cv.wait_for(lock, 500ms, [&]() {
+            return has_feedback && feedback.message_type == TrajectoryFeedbackMessageType::ACTIVE_POINT;
+        }));
+    }
     EXPECT_EQ(feedback.message_type, TrajectoryFeedbackMessageType::ACTIVE_POINT);
     EXPECT_EQ(feedback.point_index, 0);
     EXPECT_EQ(feedback.total_points, 1);
@@ -117,7 +140,12 @@ TEST(TRAJECTORY_INTERFACE, write_point) {
 
     send_feedback_frame(*client, (int)TrajectoryFeedbackMessageType::RESULT, 1, 1, (int)TrajectoryMotionResult::SUCCESS, point);
 
-    std::this_thread::sleep_for(50ms);
+    {
+        std::unique_lock<std::mutex> lock(callback_mutex);
+        EXPECT_TRUE(callback_cv.wait_for(lock, 500ms, [&]() {
+            return has_result && has_feedback && feedback.message_type == TrajectoryFeedbackMessageType::RESULT;
+        }));
+    }
 
     EXPECT_EQ(motion_result, TrajectoryMotionResult::SUCCESS);
     EXPECT_EQ(feedback.message_type, TrajectoryFeedbackMessageType::RESULT);

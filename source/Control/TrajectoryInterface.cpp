@@ -11,7 +11,7 @@ using namespace ELITE;
 
 TrajectoryInterface::TrajectoryInterface(int port, std::shared_ptr<TcpServer::StaticResource> resource_)
     : ReversePort(port, TRAJECTORY_FEEDBACK_LEN * sizeof(int32_t), resource_) {
-    server_->setReceiveCallback([&](const uint8_t data[], int nb) {
+    server_->setReceiveCallback([this](const uint8_t data[], int nb) {
         if (nb != TRAJECTORY_FEEDBACK_LEN * static_cast<int>(sizeof(int32_t))) {
             return;
         }
@@ -44,7 +44,7 @@ TrajectoryInterface::TrajectoryInterface(int port, std::shared_ptr<TcpServer::St
     server_->startListen();
 }
 
-TrajectoryInterface::~TrajectoryInterface() {}
+TrajectoryInterface::~TrajectoryInterface() { server_->unsetReceiveCallback(); }
 
 bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian) {
     return writeTrajectoryPoint(positions, time, blend_radius, cartesian, 0.0f, 0.0f);
