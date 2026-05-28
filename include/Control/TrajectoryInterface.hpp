@@ -23,6 +23,7 @@ enum class TrajectoryMotionType : int {
 class TrajectoryInterface : public ReversePort {
    public:
     static const int TRAJECTORY_MESSAGE_LEN = 21;
+    static const int TRAJECTORY_FEEDBACK_LEN = 10;
 
     TrajectoryInterface() = delete;
 
@@ -45,6 +46,13 @@ class TrajectoryInterface : public ReversePort {
      * @param cb Callback function that will be triggered in the event of finishing
      */
     void setMotionResultCallback(std::function<void(TrajectoryMotionResult)> cb) { motion_result_func_ = cb; }
+
+    /**
+     * @brief Register a callback for robot-based trajectory feedback frames.
+     *
+     * @param cb Callback function that will be triggered when the robot reports trajectory progress.
+     */
+    void setMotionFeedbackCallback(std::function<void(const TrajectoryMotionFeedback&)> cb) { motion_feedback_func_ = cb; }
 
     /**
      * @brief Writes a trajectory point onto the dedicated socket.
@@ -76,6 +84,7 @@ class TrajectoryInterface : public ReversePort {
                               float acceleration);
 
     std::function<void(TrajectoryMotionResult)> motion_result_func_;
+    std::function<void(const TrajectoryMotionFeedback&)> motion_feedback_func_;
 };
 
 }  // namespace ELITE
