@@ -174,6 +174,13 @@ class EliteDriver {
     ELITE_EXPORT void setTrajectoryResultCallback(std::function<void(TrajectoryMotionResult)> cb);
 
     /**
+     * @brief Register a callback for robot-based trajectory feedback frames.
+     *
+     * @param cb Callback function that will be triggered when the robot reports trajectory progress.
+     */
+    ELITE_EXPORT void setTrajectoryFeedbackCallback(std::function<void(const TrajectoryMotionFeedback&)> cb);
+
+    /**
      * @brief Writes a trajectory point onto the dedicated socket.
      *
      * @param positions Desired joint or cartesian positions

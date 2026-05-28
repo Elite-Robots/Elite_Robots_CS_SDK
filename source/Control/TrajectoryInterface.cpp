@@ -2,6 +2,7 @@
 // Copyright (c) 2025, Elite Robots.
 #include "TrajectoryInterface.hpp"
 #include <boost/asio.hpp>
+#include <cstring>
 #include "ControlCommon.hpp"
 #include "EliteException.hpp"
 #include "Log.hpp"
@@ -9,22 +10,41 @@
 using namespace ELITE;
 
 TrajectoryInterface::TrajectoryInterface(int port, std::shared_ptr<TcpServer::StaticResource> resource_)
-    : ReversePort(port, sizeof(TrajectoryMotionResult), resource_) {
-    server_->setReceiveCallback([&](const uint8_t data[], int nb) {
-        if (nb != sizeof(TrajectoryMotionResult)) {
+    : ReversePort(port, TRAJECTORY_FEEDBACK_LEN * sizeof(int32_t), resource_) {
+    server_->setReceiveCallback([this](const uint8_t data[], int nb) {
+        if (nb != TRAJECTORY_FEEDBACK_LEN * static_cast<int>(sizeof(int32_t))) {
             return;
         }
-        int32_t receive_value = *((const int32_t*)data);
-        receive_value = ::ntohl(receive_value);
-        TrajectoryMotionResult motion_result = static_cast<TrajectoryMotionResult>(receive_value);
-        if (motion_result_func_) {
-            motion_result_func_(motion_result);
+
+        auto decode_int32 = [](int32_t raw_value) -> int32_t {
+            uint32_t network_value = static_cast<uint32_t>(raw_value);
+            uint32_t host_value = ::ntohl(network_value);
+            return static_cast<int32_t>(host_value);
+        };
+
+        int32_t raw_feedback[TRAJECTORY_FEEDBACK_LEN] = {0};
+        std::memcpy(raw_feedback, data, sizeof(raw_feedback));
+        TrajectoryMotionFeedback feedback;
+        feedback.message_type = static_cast<TrajectoryFeedbackMessageType>(decode_int32(raw_feedback[0]));
+        feedback.point_index = decode_int32(raw_feedback[1]);
+        feedback.total_points = decode_int32(raw_feedback[2]);
+        feedback.result = decode_int32(raw_feedback[3]);
+        for (size_t i = 0; i < feedback.point.size(); ++i) {
+            feedback.point[i] = static_cast<double>(decode_int32(raw_feedback[4 + i])) / CONTROL::POS_ZOOM_RATIO;
+        }
+
+        if (motion_feedback_func_) {
+            motion_feedback_func_(feedback);
+        }
+
+        if (feedback.message_type == TrajectoryFeedbackMessageType::RESULT && motion_result_func_) {
+            motion_result_func_(static_cast<TrajectoryMotionResult>(feedback.result));
         }
     });
     server_->startListen();
 }
 
-TrajectoryInterface::~TrajectoryInterface() {}
+TrajectoryInterface::~TrajectoryInterface() { server_->unsetReceiveCallback(); }
 
 bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian) {
     return writeTrajectoryPoint(positions, time, blend_radius, cartesian, 0.0f, 0.0f);

@@ -120,6 +120,12 @@ enum class TrajectoryControlAction : int {
     START = 1,
 };
 
+enum class TrajectoryFeedbackMessageType : int {
+    ACTIVE_POINT = 1,
+    POINT_DONE = 2,
+    RESULT = 3,
+};
+
 enum class ToolVoltage : int {
     OFF = 0,    // 0V
     V_12 = 12,  // 12V
@@ -152,6 +158,15 @@ using vector3d_t = std::array<double, 3>;
 using vector6d_t = std::array<double, 6>;
 using vector6int32_t = std::array<int32_t, 6>;
 using vector6uint32_t = std::array<uint32_t, 6>;
+
+struct TrajectoryMotionFeedback {
+    TrajectoryFeedbackMessageType message_type = TrajectoryFeedbackMessageType::RESULT;
+    int32_t point_index = -1;
+    int32_t total_points = 0;
+    int32_t result = -1;
+    vector6d_t point{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+};
+
 #if (ELITE_SDK_COMPILE_STANDARD >= 17)
 using RtsiTypeVariant = std::variant<bool, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t, double,
                                      vector3d_t, vector6d_t, vector6int32_t, vector6uint32_t>;
