@@ -80,6 +80,125 @@ bool sendScript(const std::string& script)
 
 ---
 
+### ***机器人上电***
+```cpp
+bool powerOn()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `power on`，并通过 30001 Primary 状态报文确认机器人模式。
+
+- ***返回值***：发送成功且 `RobotModeData.robot_mode` 变为 `IDLE` 或 `RUNNING` 返回 true；发送失败或等待目标状态超时返回 false。
+
+- ***注意***
+
+    如果当前机器人模式已经是 `IDLE` 或 `RUNNING`，此接口会直接返回 true。
+
+---
+
+### ***机器人下电***
+```cpp
+bool powerOff()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `power off`，并通过 30001 Primary 状态报文确认机器人模式。
+
+- ***返回值***：发送成功且 `RobotModeData.robot_mode` 变为 `POWER_OFF` 返回 true；发送失败或等待目标状态超时返回 false。
+
+---
+
+### ***释放抱闸***
+```cpp
+bool brakeRelease()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `set robotmode run`，释放机器人抱闸。
+
+- ***返回值***：发送成功且 `RobotModeData.robot_mode` 变为 `RUNNING` 返回 true；前置状态不满足、发送失败或等待目标状态超时返回 false。
+
+- ***注意***
+
+    此接口会先检查 30001 状态报文：机器人模式需要为 `IDLE`，安全模式需要为 `NORMAL`、`REDUCED` 或 `RECOVERY`。如果当前机器人模式已经是 `RUNNING`，会直接返回 true。
+
+---
+
+### ***暂停任务***
+```cpp
+bool pauseProgram()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `pause task`，暂停当前正在运行的任务。
+
+- ***返回值***：发送成功且任务状态变为 `PAUSED` 返回 true；当前任务未运行、发送失败或等待目标状态超时返回 false。
+
+- ***注意***
+
+    此接口根据 `RobotModeData.is_task_running` 和 `RobotModeData.is_task_paused` 判断任务状态。只有当前任务状态为 `PLAYING` 时才会发送暂停命令；如果任务已经是 `PAUSED`，会直接返回 true。
+
+---
+
+### ***停止任务***
+```cpp
+bool stopProgram()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `stop task`，停止当前任务。
+
+- ***返回值***：发送成功且任务状态变为 `STOPPED` 返回 true；发送失败或等待目标状态超时返回 false。
+
+- ***注意***
+
+    此接口根据 `RobotModeData.is_task_running` 和 `RobotModeData.is_task_paused` 判断任务状态。如果当前任务已经是 `STOPPED`，会直接返回 true。
+
+---
+
+### ***解除保护停***
+```cpp
+bool unlockProtectiveStop()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `set unlock protective stop`，解除机器人保护停状态。
+
+- ***返回值***：发送成功且 `RobotModeData.is_robot_protective_stopped` 变为 false 返回 true；发送失败或等待目标状态超时返回 false。
+
+---
+
+### ***重启安全系统***
+```cpp
+bool safetySystemRestart()
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `restart safetyboard`，重启安全板。
+
+- ***返回值***：发送成功且 `MasterBoardData.safety_mode` 变为 `NORMAL` 返回 true；发送失败或等待目标状态超时返回 false。
+
+---
+
+### ***设置速度比例***
+```cpp
+bool setSpeedScaling(int scaling)
+```
+- ***功能***
+
+    通过 30001 端口发送普通脚本 `set speed <scaling / 100.0>`，设置机器人目标速度比例。
+
+- ***参数***
+    - scaling：目标速度百分比。
+
+- ***返回值***：发送成功且 `RobotModeData.target_speed_fraction` 回读为目标值返回 true；发送失败或等待目标状态超时返回 false。
+
+- ***注意***
+
+    30001 状态报文解析仅作为这些控制接口的内部确认机制，不作为 `PrimaryPortInterface` 的公开状态查询 API。外部业务如果需要主动读取机器人状态，仍建议使用 RTSI 接口。
+
+---
+
 ### 获取数据包
 ```cpp
 bool getPackage(std::shared_ptr<PrimaryPackage> pkg, int timeout_ms)

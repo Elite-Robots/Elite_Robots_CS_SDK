@@ -374,6 +374,13 @@ bool EliteDriver::primaryReconnect() {
     return impl_->primary_port_->connect(impl_->robot_ip_);
 }
 
+PrimaryPortInterface& EliteDriver::primaryPort() {
+    if (!impl_->primary_port_) {
+        throw EliteException(EliteException::Code::SOCKET_CONNECT_FAIL, "Not connect to robot primary port");
+    }
+    return *impl_->primary_port_;
+}
+
 void EliteDriver::registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)> cb) {
     impl_->primary_port_->registerRobotExceptionCallback(cb);
 }

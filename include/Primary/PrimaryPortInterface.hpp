@@ -6,6 +6,7 @@
 #ifndef __ELITE__PRIMARY_PORT_INTERFACE_HPP__
 #define __ELITE__PRIMARY_PORT_INTERFACE_HPP__
 
+
 #include <Elite/EliteOptions.hpp>
 #include <Elite/PrimaryPackage.hpp>
 #include <Elite/RobotException.hpp>
@@ -54,6 +55,87 @@ class PrimaryPortInterface {
      * @return false fail
      */
     ELITE_EXPORT bool sendScript(const std::string& script);
+
+    /**
+     * @brief Power on the robot through the primary port.
+     *
+     * Sends the controller script command `power on`.
+     *
+     * @return true script written successfully and robot mode becomes IDLE or RUNNING
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool powerOn();
+
+    /**
+     * @brief Power off the robot through the primary port.
+     *
+     * Sends the controller script command `power off`.
+     *
+     * @return true script written successfully and robot mode becomes POWER_OFF
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool powerOff();
+
+    /**
+     * @brief Release robot brakes through the primary port.
+     *
+     * Sends the controller script command `set robotmode run`.
+     *
+     * @return true script written successfully and robot mode becomes RUNNING
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool brakeRelease();
+
+    /**
+     * @brief Pause the running task through the primary port.
+     *
+     * Sends the controller script command `pause task`.
+     *
+     * @return true script written successfully and runtime state becomes PAUSED
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool pauseProgram();
+
+    /**
+     * @brief Stop the running task through the primary port.
+     *
+     * Sends the controller script command `stop task`.
+     *
+     * @return true script written successfully and runtime state becomes STOPPED
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool stopProgram();
+
+    /**
+     * @brief Unlock protective stop through the primary port.
+     *
+     * Sends the controller script command `set unlock protective stop`.
+     *
+     * @return true script written successfully and safety status is not PROTECTIVE_STOP
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool unlockProtectiveStop();
+
+    /**
+     * @brief Restart the safety board through the primary port.
+     *
+     * Sends the controller script command `restart safetyboard`.
+     *
+     * @return true script written successfully and safety status becomes NORMAL
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool safetySystemRestart();
+
+    /**
+     * @brief Set the target speed scaling percentage through the primary port.
+     *
+     * Sends the controller script command `set speed <scaling / 100.0>`.
+     *
+     * @param scaling Target speed percentage.
+     * @return true script written successfully and target speed scaling is confirmed
+     * @return false failed to write script or target state was not reached
+     */
+    ELITE_EXPORT bool setSpeedScaling(int scaling);
 
     /**
      * @brief Get primary sub-package data.

@@ -318,6 +318,21 @@ Re-establishes the connection to port 30001 of the robot.
 
 ---
 
+### ***Get the Robot Primary Port Interface***
+```cpp
+PrimaryPortInterface& primaryPort()
+```
+
+- ***Function***
+Returns the connected `PrimaryPortInterface` instance owned by `EliteDriver`, so users do not need to create another instance or open another connection to port 30001.
+
+- ***Return Value***: A reference to the PrimaryPortInterface.
+
+- ***Note***
+The returned object is owned by `EliteDriver`. Do not use the reference after the driver is destroyed.
+
+---
+
 ### ***Register Robot Exception Callback***
 ```cpp
 void registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)> cb)

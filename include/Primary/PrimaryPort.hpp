@@ -11,6 +11,9 @@
 #include "RobotException.hpp"
 
 #include <boost/asio.hpp>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -29,6 +32,39 @@ class PrimaryPort {
     static constexpr int ROBOT_STATE_MSG_TYPE = 16;
     // The type of 'RobotException' package
     static constexpr int ROBOT_EXCEPTION_MSG_TYPE = 20;
+    // The type of 'RobotModeData' sub-package in a RobotState package
+    static constexpr int ROBOT_MODE_DATA_PKG_TYPE = 0;
+    static constexpr int ROBOT_MODE_DATA_PKG_LENGTH = 53;
+    // The type of 'MasterBoardData' sub-package in a RobotState package
+    static constexpr int MASTER_BOARD_DATA_PKG_TYPE = 3;
+    static constexpr int MASTER_BOARD_DATA_STATUS_OFFSET = 4 + 1 + 4 + 4 + 3 + 8 * 3 + 3 + 8 * 3 + 4 * 4;
+    static constexpr int MASTER_BOARD_DATA_STATUS_FIELD_LENGTH = 5;
+    static constexpr int MASTER_BOARD_DATA_STATUS_MIN_LENGTH =
+        MASTER_BOARD_DATA_STATUS_OFFSET + MASTER_BOARD_DATA_STATUS_FIELD_LENGTH;
+
+    struct RobotModeData {
+        uint64_t timestamp = 0;
+        bool is_robot_power_on = false;
+        bool is_emergency_stopped = false;
+        bool is_robot_protective_stopped = false;
+        bool is_task_running = false;
+        bool is_task_paused = false;
+        RobotMode robot_mode = RobotMode::UNKNOWN;
+        uint8_t robot_control_mode = 0;
+        double target_speed_fraction = 0.0;
+        double speed_scaling = 0.0;
+        double target_speed_fraction_limit = 0.0;
+        uint8_t robot_speed_mode = 0;
+        bool is_in_package_mode = false;
+    };
+
+    struct MasterBoardData {
+        SafetyMode safety_mode = SafetyMode::UNKNOWN;
+        bool is_robot_in_reduced_mode = false;
+        bool operational_mode_selector_input = false;
+        bool threeposition_enabling_device_input = false;
+        uint8_t internal_use = 0;
+    };
 
     std::mutex socket_mutex_;
     boost::asio::io_context io_context_;
@@ -45,7 +81,15 @@ class PrimaryPort {
     std::unordered_map<int, std::shared_ptr<PrimaryPackage>> parser_sub_msg_;
     std::unique_ptr<std::thread> socket_async_thread_;
     std::mutex mutex_;
-    bool socket_async_thread_alive_;
+    std::atomic_bool socket_async_thread_alive_{false};
+    RobotModeData robot_mode_data_;
+    bool robot_mode_data_received_ = false;
+    std::mutex robot_mode_data_mutex_;
+    std::condition_variable robot_mode_data_cv_;
+    MasterBoardData master_board_data_;
+    bool master_board_data_received_ = false;
+    std::mutex master_board_data_mutex_;
+    std::condition_variable master_board_data_cv_;
 
     /**
      * @brief The background thread.
@@ -93,6 +137,18 @@ class PrimaryPort {
 
     RobotRuntimeExceptionSharedPtr paraserRuntimeException(uint64_t timestamp, const std::vector<uint8_t>& msg_body, int offset);
 
+    void parserRobotModeData(int len, const std::vector<uint8_t>::const_iterator& iter);
+    void parserMasterBoardData(int len, const std::vector<uint8_t>::const_iterator& iter);
+    bool waitForRobotModeData(std::chrono::milliseconds timeout);
+    bool waitForMasterBoardData(std::chrono::milliseconds timeout);
+    RobotModeData getRobotModeDataSnapshot();
+    MasterBoardData getMasterBoardDataSnapshot();
+    void resetStateData();
+    RobotMode getPrimaryRobotMode();
+    int getPrimarySpeedScaling();
+    SafetyMode getPrimarySafetyMode();
+    TaskStatus getPrimaryRunningStatus();
+
    public:
     PrimaryPort();
     ~PrimaryPort();
@@ -125,6 +181,87 @@ class PrimaryPort {
      * @return false fail
      */
     bool sendScript(const std::string& script);
+
+    /**
+     * @brief Power on the robot through the primary port.
+     *
+     * Sends the controller script command `power on`.
+     *
+     * @return true script written successfully and robot mode becomes IDLE or RUNNING
+     * @return false failed to write script or target state was not reached
+     */
+    bool powerOn();
+
+    /**
+     * @brief Power off the robot through the primary port.
+     *
+     * Sends the controller script command `power off`.
+     *
+     * @return true script written successfully and robot mode becomes POWER_OFF
+     * @return false failed to write script or target state was not reached
+     */
+    bool powerOff();
+
+    /**
+     * @brief Release robot brakes through the primary port.
+     *
+     * Sends the controller script command `set robotmode run`.
+     *
+     * @return true script written successfully and robot mode becomes RUNNING
+     * @return false failed to write script or target state was not reached
+     */
+    bool brakeRelease();
+
+    /**
+     * @brief Pause the running task through the primary port.
+     *
+     * Sends the controller script command `pause task`.
+     *
+     * @return true script written successfully and runtime state becomes PAUSED
+     * @return false failed to write script or target state was not reached
+     */
+    bool pauseProgram();
+
+    /**
+     * @brief Stop the running task through the primary port.
+     *
+     * Sends the controller script command `stop task`.
+     *
+     * @return true script written successfully and runtime state becomes STOPPED
+     * @return false failed to write script or target state was not reached
+     */
+    bool stopProgram();
+
+    /**
+     * @brief Unlock protective stop through the primary port.
+     *
+     * Sends the controller script command `set unlock protective stop`.
+     *
+     * @return true script written successfully and safety status is not PROTECTIVE_STOP
+     * @return false failed to write script or target state was not reached
+     */
+    bool unlockProtectiveStop();
+
+    /**
+     * @brief Restart the safety board through the primary port.
+     *
+     * Sends the controller script command `restart safetyboard`.
+     *
+     * @return true script written successfully and safety status becomes NORMAL
+     * @return false failed to write script or target state was not reached
+     */
+    bool safetySystemRestart();
+
+    /**
+     * @brief Set the target speed scaling percentage through the primary port.
+     *
+     * Sends the controller script command `set speed <scaling / 100.0>`.
+     *
+     * @param scaling Target speed percentage.
+     * @return true script written successfully and target speed scaling is confirmed
+     * @return false failed to write script or target state was not reached
+     */
+    bool setSpeedScaling(int scaling);
 
     /**
      * @brief Get primary sub-package data.
