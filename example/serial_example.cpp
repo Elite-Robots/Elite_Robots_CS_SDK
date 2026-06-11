@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2025, Elite Robots.
-#include <Elite/DashboardClient.hpp>
 #include <Elite/EliteDriver.hpp>
 #include <Elite/Log.hpp>
 #include <boost/program_options.hpp>
@@ -52,23 +51,17 @@ int main(int argc, char** argv) {
 
     config.script_file_path = "external_control.script";
     auto driver = std::make_unique<EliteDriver>(config);
-    auto dashboard = std::make_unique<DashboardClient>();
-    ELITE_LOG_INFO("Connecting to the dashboard");
-    if (!dashboard->connect(config.robot_ip)) {
-        ELITE_LOG_FATAL("Failed to connect to the dashboard.");
-        return 1;
-    }
-    ELITE_LOG_INFO("Successfully connected to the dashboard");
+    PrimaryPortInterface& primary = driver->primaryPort();
 
     ELITE_LOG_INFO("Start powering on...");
-    if (!dashboard->powerOn()) {
+    if (!primary.powerOn()) {
         ELITE_LOG_FATAL("Power-on failed");
         return 1;
     }
     ELITE_LOG_INFO("Power-on succeeded");
 
     ELITE_LOG_INFO("Start releasing brake...");
-    if (!dashboard->brakeRelease()) {
+    if (!primary.brakeRelease()) {
         ELITE_LOG_FATAL("Release brake fail");
         return 1;
     }
@@ -82,10 +75,7 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        if (!config.headless_mode && !dashboard->playProgram()) {
-            ELITE_LOG_FATAL("Fail to play program");
-            return 1;
-        }
+        ELITE_LOG_INFO("Please start the External Control task from the robot side.");
     }
 
     ELITE_LOG_INFO("Wait external control script run...");

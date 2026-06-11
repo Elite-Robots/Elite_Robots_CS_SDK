@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2025, Elite Robots.
-#include <Elite/DashboardClient.hpp>
 #include <Elite/DataType.hpp>
 #include <Elite/EliteDriver.hpp>
 #include <Elite/Log.hpp>
@@ -14,7 +13,6 @@ using namespace ELITE;
 namespace po = boost::program_options;
 
 static std::unique_ptr<EliteDriver> s_driver;
-static std::unique_ptr<DashboardClient> s_dashboard;
 
 int main(int argc, char** argv) {
     EliteDriverConfig config;
@@ -53,24 +51,17 @@ int main(int argc, char** argv) {
     
     config.script_file_path = "external_control.script";
     s_driver = std::make_unique<EliteDriver>(config);
-    s_dashboard = std::make_unique<DashboardClient>();
-
-    ELITE_LOG_INFO("Connecting to the dashboard");
-    if (!s_dashboard->connect(config.robot_ip)) {
-        ELITE_LOG_FATAL("Failed to connect to the dashboard.");
-        return 1;
-    }
-    ELITE_LOG_INFO("Successfully connected to the dashboard");
+    PrimaryPortInterface& primary = s_driver->primaryPort();
 
     ELITE_LOG_INFO("Start powering on...");
-    if (!s_dashboard->powerOn()) {
+    if (!primary.powerOn()) {
         ELITE_LOG_FATAL("Power-on failed");
         return 1;
     }
     ELITE_LOG_INFO("Power-on succeeded");
 
     ELITE_LOG_INFO("Start releasing brake...");
-    if (!s_dashboard->brakeRelease()) {
+    if (!primary.brakeRelease()) {
         return 1;
     }
     ELITE_LOG_INFO("Brake released");
@@ -83,10 +74,7 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        if (!config.headless_mode && !s_dashboard->playProgram()) {
-            ELITE_LOG_FATAL("Fail to play program");
-            return 1;
-        }
+        ELITE_LOG_INFO("Please start the External Control task from the robot side.");
     }
 
     ELITE_LOG_INFO("Wait external control script run...");
