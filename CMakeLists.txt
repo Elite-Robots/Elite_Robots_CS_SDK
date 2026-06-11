@@ -49,6 +49,7 @@ set(
     source/Primary/PrimaryPort.cpp
     source/Primary/PrimaryPortInterface.cpp
     source/Primary/RobotConfPackage.cpp
+    source/Primary/PrimaryStatePackage.cpp
     source/Rtsi/RtsiClient.cpp
     source/Rtsi/RtsiClientInterface.cpp
     source/Rtsi/RtsiRecipeInternal.cpp
@@ -93,6 +94,7 @@ set(
     Rtsi/RtsiRecipe.hpp
     Primary/PrimaryPackage.hpp
     Primary/RobotConfPackage.hpp
+    Primary/PrimaryStatePackage.hpp
     Primary/PrimaryPortInterface.hpp
     EliteException.hpp
     Elite/EliteDriver.hpp

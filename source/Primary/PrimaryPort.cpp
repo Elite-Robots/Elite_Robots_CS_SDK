@@ -3,6 +3,7 @@
 #include "PrimaryPort.hpp"
 #include "EliteException.hpp"
 #include "Log.hpp"
+#include "PrimaryStatePackage.hpp"
 #include "Utils.hpp"
 
 #include <cmath>
@@ -30,70 +31,6 @@ bool waitFor(const std::function<bool()>& predicate, milliseconds timeout, milli
     return predicate();
 }
 
-bool asBool(uint8_t value) { return value != 0; }
-
-RobotMode toRobotMode(uint8_t mode) {
-    switch (mode) {
-        case 0:
-            return RobotMode::DISCONNECTED;
-        case 1:
-            return RobotMode::CONFIRM_SAFETY;
-        case 2:
-            return RobotMode::BOOTING;
-        case 3:
-            return RobotMode::POWER_OFF;
-        case 4:
-            return RobotMode::POWER_ON;
-        case 5:
-            return RobotMode::IDLE;
-        case 6:
-            return RobotMode::BACKDRIVE;
-        case 7:
-            return RobotMode::RUNNING;
-        case 8:
-            return RobotMode::UPDATING_FIRMWARE;
-        case 9:
-            return RobotMode::WAITING_CALIBRATION;
-        default:
-            return RobotMode::UNKNOWN;
-    }
-}
-
-SafetyMode toSafetyMode(uint8_t mode) {
-    switch (mode) {
-        case 1:
-            return SafetyMode::NORMAL;
-        case 2:
-            return SafetyMode::REDUCED;
-        case 3:
-            return SafetyMode::PROTECTIVE_STOP;
-        case 4:
-            return SafetyMode::RECOVERY;
-        case 5:
-            return SafetyMode::SAFEGUARD_STOP;
-        case 6:
-            return SafetyMode::SYSTEM_EMERGENCY_STOP;
-        case 7:
-            return SafetyMode::ROBOT_EMERGENCY_STOP;
-        case 8:
-            return SafetyMode::VIOLATION;
-        case 9:
-            return SafetyMode::FAULT;
-        case 10:
-            return SafetyMode::VALIDATE_JOINT_ID;
-        case 11:
-            return SafetyMode::UNDEFINED_SAFETY_MODE;
-        case 12:
-            return SafetyMode::AUTOMATIC_MODE_SAFEGUARD_STOP;
-        case 13:
-            return SafetyMode::SYSTEM_THREE_POSITION_ENABLING_STOP;
-        case 14:
-            return SafetyMode::TP_THREE_POSITION_ENABLING_STOP;
-        default:
-            return SafetyMode::UNKNOWN;
-    }
-}
-
 }  // namespace
 
 PrimaryPort::PrimaryPort() { message_head_.resize(HEAD_LENGTH); }
@@ -105,7 +42,6 @@ bool PrimaryPort::connect(const std::string& ip, int port) {
     if (!socketConnect(ip, port)) {
         return false;
     }
-    resetStateData();
     if (!socket_async_thread_) {
         // Start async thread
         socket_async_thread_alive_.store(true);
@@ -168,12 +104,11 @@ bool PrimaryPort::powerOff() {
 }
 
 bool PrimaryPort::brakeRelease() {
-    if (!waitForRobotModeData(2s)) {
+    RobotMode mode = getPrimaryRobotMode();
+    if (mode == RobotMode::UNKNOWN) {
         ELITE_LOG_ERROR("Primary brake release failed: no RobotModeData received from primary port");
         return false;
     }
-
-    RobotMode mode = getPrimaryRobotMode();
     if (mode == RobotMode::RUNNING) {
         return true;
     }
@@ -195,11 +130,11 @@ bool PrimaryPort::brakeRelease() {
 }
 
 bool PrimaryPort::pauseProgram() {
-    if (!waitForRobotModeData(2s)) {
+    TaskStatus status = getPrimaryRunningStatus();
+    if (status == TaskStatus::UNKNOWN) {
         ELITE_LOG_ERROR("Primary pause task failed: no RobotModeData received from primary port");
         return false;
     }
-    TaskStatus status = getPrimaryRunningStatus();
     if (status == TaskStatus::PAUSED) {
         return true;
     }
@@ -214,11 +149,12 @@ bool PrimaryPort::pauseProgram() {
 }
 
 bool PrimaryPort::stopProgram() {
-    if (!waitForRobotModeData(2s)) {
+    TaskStatus status = getPrimaryRunningStatus();
+    if (status == TaskStatus::UNKNOWN) {
         ELITE_LOG_ERROR("Primary stop task failed: no RobotModeData received from primary port");
         return false;
     }
-    if (getPrimaryRunningStatus() == TaskStatus::STOPPED) {
+    if (status == TaskStatus::STOPPED) {
         return true;
     }
     if (!sendScript("stop task")) {
@@ -228,21 +164,21 @@ bool PrimaryPort::stopProgram() {
 }
 
 bool PrimaryPort::unlockProtectiveStop() {
-    if (!waitForRobotModeData(2s)) {
+    auto state_package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(state_package, 2000)) {
         ELITE_LOG_ERROR("Primary unlock protective stop failed: no RobotModeData received from primary port");
         return false;
     }
     if (!sendScript("set unlock protective stop")) {
         return false;
     }
-    return waitFor([&]() { return !getRobotModeDataSnapshot().is_robot_protective_stopped; }, 5s);
+    return waitFor([&]() {
+        auto package = std::make_shared<RobotModeDataPackage>();
+        return getPackage(package, 500) && !package->data().is_robot_protective_stopped;
+    }, 5s);
 }
 
 bool PrimaryPort::safetySystemRestart() {
-    if (!waitForRobotModeData(2s)) {
-        ELITE_LOG_ERROR("Primary safety system restart failed: no RobotModeData received from primary port");
-        return false;
-    }
     if (!sendScript("restart safetyboard")) {
         return false;
     }
@@ -251,7 +187,7 @@ bool PrimaryPort::safetySystemRestart() {
 }
 
 bool PrimaryPort::setSpeedScaling(int scaling) {
-    if (!waitForRobotModeData(2s)) {
+    if (getPrimaryRobotMode() == RobotMode::UNKNOWN) {
         ELITE_LOG_ERROR("Primary set speed failed: no RobotModeData received from primary port");
         return false;
     }
@@ -264,126 +200,36 @@ bool PrimaryPort::setSpeedScaling(int scaling) {
     return waitFor([&]() { return getPrimarySpeedScaling() == scaling; }, 3s);
 }
 
-void PrimaryPort::parserRobotModeData(int len, const std::vector<uint8_t>::const_iterator& iter) {
-    if (len < ROBOT_MODE_DATA_PKG_LENGTH) {
-        ELITE_LOG_ERROR("Primary RobotModeData package len error: %d", len);
-        return;
-    }
-
-    RobotModeData data;
-    int offset = 0;
-
-    offset += sizeof(uint32_t);  // mode_sub_len
-    offset += sizeof(uint8_t);   // mode_sub_type
-
-    EndianUtils::unpack(iter + offset, data.timestamp);
-    offset += sizeof(uint64_t);
-
-    offset += sizeof(uint8_t);  // reserved
-    offset += sizeof(uint8_t);  // reserved
-
-    data.is_robot_power_on = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.is_emergency_stopped = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.is_robot_protective_stopped = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.is_task_running = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.is_task_paused = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.robot_mode = toRobotMode(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.robot_control_mode = *(iter + offset);
-    offset += sizeof(uint8_t);
-
-    EndianUtils::unpack(iter + offset, data.target_speed_fraction);
-    offset += sizeof(double);
-
-    EndianUtils::unpack(iter + offset, data.speed_scaling);
-    offset += sizeof(double);
-
-    EndianUtils::unpack(iter + offset, data.target_speed_fraction_limit);
-    offset += sizeof(double);
-
-    data.robot_speed_mode = *(iter + offset);
-    offset += sizeof(uint8_t);
-
-    offset += sizeof(uint8_t);  // reserved
-
-    data.is_in_package_mode = asBool(*(iter + offset));
-
-    {
-        std::lock_guard<std::mutex> lock(robot_mode_data_mutex_);
-        robot_mode_data_ = data;
-        robot_mode_data_received_ = true;
-    }
-    robot_mode_data_cv_.notify_all();
-}
-
-void PrimaryPort::parserMasterBoardData(int len, const std::vector<uint8_t>::const_iterator& iter) {
-    if (len < MASTER_BOARD_DATA_STATUS_MIN_LENGTH) {
-        ELITE_LOG_ERROR("Primary MasterBoardData package len error: %d", len);
-        return;
-    }
-
-    MasterBoardData data;
-    int offset = MASTER_BOARD_DATA_STATUS_OFFSET;
-
-    data.safety_mode = toSafetyMode(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.is_robot_in_reduced_mode = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.operational_mode_selector_input = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.threeposition_enabling_device_input = asBool(*(iter + offset));
-    offset += sizeof(uint8_t);
-
-    data.internal_use = *(iter + offset);
-
-    {
-        std::lock_guard<std::mutex> lock(master_board_data_mutex_);
-        master_board_data_ = data;
-        master_board_data_received_ = true;
-    }
-    master_board_data_cv_.notify_all();
-}
-
 RobotMode PrimaryPort::getPrimaryRobotMode() {
-    if (!waitForRobotModeData(500ms)) {
+    auto package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(package, 500)) {
         return RobotMode::UNKNOWN;
     }
-    return getRobotModeDataSnapshot().robot_mode;
+    return package->data().robot_mode;
 }
 
 int PrimaryPort::getPrimarySpeedScaling() {
-    if (!waitForRobotModeData(500ms)) {
+    auto package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(package, 500)) {
         return 0;
     }
-    return static_cast<int>(std::round(getRobotModeDataSnapshot().target_speed_fraction * 100.0));
+    return static_cast<int>(std::round(package->data().target_speed_fraction * 100.0));
 }
 
 SafetyMode PrimaryPort::getPrimarySafetyMode() {
-    if (!waitForMasterBoardData(500ms)) {
+    auto package = std::make_shared<MasterBoardDataPackage>();
+    if (!getPackage(package, 500)) {
         return SafetyMode::UNKNOWN;
     }
-    return getMasterBoardDataSnapshot().safety_mode;
+    return package->data().safety_mode;
 }
 
 TaskStatus PrimaryPort::getPrimaryRunningStatus() {
-    if (!waitForRobotModeData(500ms)) {
+    auto package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(package, 500)) {
         return TaskStatus::UNKNOWN;
     }
-    auto state = getRobotModeDataSnapshot();
+    auto state = package->data();
     if (state.is_task_paused) {
         return TaskStatus::PAUSED;
     }
@@ -393,46 +239,25 @@ TaskStatus PrimaryPort::getPrimaryRunningStatus() {
     return TaskStatus::STOPPED;
 }
 
-bool PrimaryPort::waitForRobotModeData(milliseconds timeout) {
-    std::unique_lock<std::mutex> lock(robot_mode_data_mutex_);
-    return robot_mode_data_cv_.wait_for(lock, timeout, [&]() { return robot_mode_data_received_; });
-}
-
-bool PrimaryPort::waitForMasterBoardData(milliseconds timeout) {
-    std::unique_lock<std::mutex> lock(master_board_data_mutex_);
-    return master_board_data_cv_.wait_for(lock, timeout, [&]() { return master_board_data_received_; });
-}
-
-PrimaryPort::RobotModeData PrimaryPort::getRobotModeDataSnapshot() {
-    std::lock_guard<std::mutex> lock(robot_mode_data_mutex_);
-    return robot_mode_data_;
-}
-
-PrimaryPort::MasterBoardData PrimaryPort::getMasterBoardDataSnapshot() {
-    std::lock_guard<std::mutex> lock(master_board_data_mutex_);
-    return master_board_data_;
-}
-
-void PrimaryPort::resetStateData() {
-    {
-        std::lock_guard<std::mutex> state_lock(robot_mode_data_mutex_);
-        robot_mode_data_ = RobotModeData{};
-        robot_mode_data_received_ = false;
-    }
-    {
-        std::lock_guard<std::mutex> state_lock(master_board_data_mutex_);
-        master_board_data_ = MasterBoardData{};
-        master_board_data_received_ = false;
-    }
-}
-
 bool PrimaryPort::getPackage(std::shared_ptr<PrimaryPackage> pkg, int timeout_ms) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        parser_sub_msg_.insert({pkg->getType(), pkg});
+        auto result = parser_sub_msg_.insert({pkg->getType(), pkg});
+        if (!result.second) {
+            ELITE_LOG_ERROR("Primary package type %d is already waiting for update", pkg->getType());
+            return false;
+        }
     }
 
-    return pkg->waitUpdate(timeout_ms);
+    bool updated = pkg->waitUpdate(timeout_ms);
+    if (!updated) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto psm = parser_sub_msg_.find(pkg->getType());
+        if (psm != parser_sub_msg_.end() && psm->second == pkg) {
+            parser_sub_msg_.erase(psm);
+        }
+    }
+    return updated;
 }
 
 bool PrimaryPort::parserMessage() {
@@ -605,12 +430,6 @@ bool PrimaryPort::parserMessageBody(int type, int package_len) {
             }
             int sub_type = *(iter + 4);
 
-            if (sub_type == ROBOT_MODE_DATA_PKG_TYPE) {
-                parserRobotModeData(sub_len, iter);
-            } else if (sub_type == MASTER_BOARD_DATA_PKG_TYPE) {
-                parserMasterBoardData(sub_len, iter);
-            }
-
             std::lock_guard<std::mutex> lock(mutex_);
             auto psm = parser_sub_msg_.find(sub_type);
             if (psm != parser_sub_msg_.end()) {
@@ -634,11 +453,7 @@ bool PrimaryPort::socketReconnect(const std::string& ip, int port, bool is_last_
     // Disconnect and reconnect
     std::lock_guard<std::mutex> lock(socket_mutex_);
     socketDisconnect();
-    bool connected = socketConnect(ip, port, is_last_connect_success);
-    if (connected) {
-        resetStateData();
-    }
-    return connected;
+    return socketConnect(ip, port, is_last_connect_success);
 }
 
 void PrimaryPort::socketAsyncLoop(const std::string& ip, int port) {

@@ -12,8 +12,6 @@
 
 #include <boost/asio.hpp>
 #include <atomic>
-#include <chrono>
-#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -32,39 +30,6 @@ class PrimaryPort {
     static constexpr int ROBOT_STATE_MSG_TYPE = 16;
     // The type of 'RobotException' package
     static constexpr int ROBOT_EXCEPTION_MSG_TYPE = 20;
-    // The type of 'RobotModeData' sub-package in a RobotState package
-    static constexpr int ROBOT_MODE_DATA_PKG_TYPE = 0;
-    static constexpr int ROBOT_MODE_DATA_PKG_LENGTH = 53;
-    // The type of 'MasterBoardData' sub-package in a RobotState package
-    static constexpr int MASTER_BOARD_DATA_PKG_TYPE = 3;
-    static constexpr int MASTER_BOARD_DATA_STATUS_OFFSET = 4 + 1 + 4 + 4 + 3 + 8 * 3 + 3 + 8 * 3 + 4 * 4;
-    static constexpr int MASTER_BOARD_DATA_STATUS_FIELD_LENGTH = 5;
-    static constexpr int MASTER_BOARD_DATA_STATUS_MIN_LENGTH =
-        MASTER_BOARD_DATA_STATUS_OFFSET + MASTER_BOARD_DATA_STATUS_FIELD_LENGTH;
-
-    struct RobotModeData {
-        uint64_t timestamp = 0;
-        bool is_robot_power_on = false;
-        bool is_emergency_stopped = false;
-        bool is_robot_protective_stopped = false;
-        bool is_task_running = false;
-        bool is_task_paused = false;
-        RobotMode robot_mode = RobotMode::UNKNOWN;
-        uint8_t robot_control_mode = 0;
-        double target_speed_fraction = 0.0;
-        double speed_scaling = 0.0;
-        double target_speed_fraction_limit = 0.0;
-        uint8_t robot_speed_mode = 0;
-        bool is_in_package_mode = false;
-    };
-
-    struct MasterBoardData {
-        SafetyMode safety_mode = SafetyMode::UNKNOWN;
-        bool is_robot_in_reduced_mode = false;
-        bool operational_mode_selector_input = false;
-        bool threeposition_enabling_device_input = false;
-        uint8_t internal_use = 0;
-    };
 
     std::mutex socket_mutex_;
     boost::asio::io_context io_context_;
@@ -82,14 +47,6 @@ class PrimaryPort {
     std::unique_ptr<std::thread> socket_async_thread_;
     std::mutex mutex_;
     std::atomic_bool socket_async_thread_alive_{false};
-    RobotModeData robot_mode_data_;
-    bool robot_mode_data_received_ = false;
-    std::mutex robot_mode_data_mutex_;
-    std::condition_variable robot_mode_data_cv_;
-    MasterBoardData master_board_data_;
-    bool master_board_data_received_ = false;
-    std::mutex master_board_data_mutex_;
-    std::condition_variable master_board_data_cv_;
 
     /**
      * @brief The background thread.
@@ -137,13 +94,6 @@ class PrimaryPort {
 
     RobotRuntimeExceptionSharedPtr paraserRuntimeException(uint64_t timestamp, const std::vector<uint8_t>& msg_body, int offset);
 
-    void parserRobotModeData(int len, const std::vector<uint8_t>::const_iterator& iter);
-    void parserMasterBoardData(int len, const std::vector<uint8_t>::const_iterator& iter);
-    bool waitForRobotModeData(std::chrono::milliseconds timeout);
-    bool waitForMasterBoardData(std::chrono::milliseconds timeout);
-    RobotModeData getRobotModeDataSnapshot();
-    MasterBoardData getMasterBoardDataSnapshot();
-    void resetStateData();
     RobotMode getPrimaryRobotMode();
     int getPrimarySpeedScaling();
     SafetyMode getPrimarySafetyMode();
