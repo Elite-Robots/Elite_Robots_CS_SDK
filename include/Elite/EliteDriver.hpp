@@ -373,6 +373,16 @@ class EliteDriver {
     ELITE_EXPORT bool primaryReconnect();
 
     /**
+     * @brief Get the primary port interface owned by this driver.
+     *
+     * The returned object is created and connected by EliteDriver during construction. Its lifetime is managed by EliteDriver, so do
+     * not store the reference beyond the lifetime of the driver.
+     *
+     * @return PrimaryPortInterface& Primary port interface.
+     */
+    ELITE_EXPORT PrimaryPortInterface& primaryPort();
+
+    /**
      * @brief Registers a callback for robot exceptions.
      *
      * This function registers a callback that will be invoked whenever

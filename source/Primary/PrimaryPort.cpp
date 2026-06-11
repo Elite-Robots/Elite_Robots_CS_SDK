@@ -3,12 +3,35 @@
 #include "PrimaryPort.hpp"
 #include "EliteException.hpp"
 #include "Log.hpp"
+#include "PrimaryStatePackage.hpp"
 #include "Utils.hpp"
+
+#include <cmath>
+#include <functional>
+#include <iomanip>
+#include <iterator>
+#include <sstream>
+#include <vector>
 
 using namespace std::chrono;
 
 namespace ELITE {
 using namespace std::chrono;
+
+namespace {
+
+bool waitFor(const std::function<bool()>& predicate, milliseconds timeout, milliseconds period = 100ms) {
+    const auto deadline = steady_clock::now() + timeout;
+    while (steady_clock::now() < deadline) {
+        if (predicate()) {
+            return true;
+        }
+        std::this_thread::sleep_for(period);
+    }
+    return predicate();
+}
+
+}  // namespace
 
 PrimaryPort::PrimaryPort() { message_head_.resize(HEAD_LENGTH); }
 
@@ -21,7 +44,7 @@ bool PrimaryPort::connect(const std::string& ip, int port) {
     }
     if (!socket_async_thread_) {
         // Start async thread
-        socket_async_thread_alive_ = true;
+        socket_async_thread_alive_.store(true);
         socket_async_thread_.reset(new std::thread([&](std::string ip, int port) { socketAsyncLoop(ip, port); }, ip, port));
     }
     return true;
@@ -31,7 +54,7 @@ void PrimaryPort::disconnect() {
     // Close socket and set thread flag
     {
         std::lock_guard<std::mutex> lock(socket_mutex_);
-        socket_async_thread_alive_ = false;
+        socket_async_thread_alive_.store(false);
         socketDisconnect();
         socket_ptr_.reset();
     }
@@ -58,13 +81,187 @@ bool PrimaryPort::sendScript(const std::string& script) {
     }
 }
 
+bool PrimaryPort::powerOn() {
+    RobotMode mode = getPrimaryRobotMode();
+    if (mode == RobotMode::IDLE || mode == RobotMode::RUNNING) {
+        return true;
+    }
+    if (!sendScript("power on")) {
+        return false;
+    }
+    return waitFor([&]() {
+        RobotMode current_mode = getPrimaryRobotMode();
+        return current_mode == RobotMode::IDLE || current_mode == RobotMode::RUNNING;
+    }, 30s);
+}
+
+bool PrimaryPort::powerOff() {
+    if (!sendScript("power off")) {
+        return false;
+    }
+    std::this_thread::sleep_for(500ms);
+    return waitFor([&]() { return getPrimaryRobotMode() == RobotMode::POWER_OFF; }, 30s);
+}
+
+bool PrimaryPort::brakeRelease() {
+    RobotMode mode = getPrimaryRobotMode();
+    if (mode == RobotMode::UNKNOWN) {
+        ELITE_LOG_ERROR("Primary brake release failed: no RobotModeData received from primary port");
+        return false;
+    }
+    if (mode == RobotMode::RUNNING) {
+        return true;
+    }
+    if (mode != RobotMode::IDLE) {
+        ELITE_LOG_ERROR("Primary brake release requires robot mode IDLE. Current mode: %d", static_cast<int>(mode));
+        return false;
+    }
+
+    SafetyMode safety = getPrimarySafetyMode();
+    if (safety != SafetyMode::NORMAL && safety != SafetyMode::REDUCED && safety != SafetyMode::RECOVERY) {
+        ELITE_LOG_ERROR("Primary brake release safety mode not allowed: %d", static_cast<int>(safety));
+        return false;
+    }
+
+    if (!sendScript("set robotmode run")) {
+        return false;
+    }
+    return waitFor([&]() { return getPrimaryRobotMode() == RobotMode::RUNNING; }, 30s);
+}
+
+bool PrimaryPort::pauseProgram() {
+    TaskStatus status = getPrimaryRunningStatus();
+    if (status == TaskStatus::UNKNOWN) {
+        ELITE_LOG_ERROR("Primary pause task failed: no RobotModeData received from primary port");
+        return false;
+    }
+    if (status == TaskStatus::PAUSED) {
+        return true;
+    }
+    if (status != TaskStatus::PLAYING) {
+        ELITE_LOG_ERROR("Primary pause task requires runtime state PLAYING. Current state: %d", static_cast<int>(status));
+        return false;
+    }
+    if (!sendScript("pause task")) {
+        return false;
+    }
+    return waitFor([&]() { return getPrimaryRunningStatus() == TaskStatus::PAUSED; }, 30s);
+}
+
+bool PrimaryPort::stopProgram() {
+    TaskStatus status = getPrimaryRunningStatus();
+    if (status == TaskStatus::UNKNOWN) {
+        ELITE_LOG_ERROR("Primary stop task failed: no RobotModeData received from primary port");
+        return false;
+    }
+    if (status == TaskStatus::STOPPED) {
+        return true;
+    }
+    if (!sendScript("stop task")) {
+        return false;
+    }
+    return waitFor([&]() { return getPrimaryRunningStatus() == TaskStatus::STOPPED; }, 30s);
+}
+
+bool PrimaryPort::unlockProtectiveStop() {
+    auto state_package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(state_package, 2000)) {
+        ELITE_LOG_ERROR("Primary unlock protective stop failed: no RobotModeData received from primary port");
+        return false;
+    }
+    if (!sendScript("set unlock protective stop")) {
+        return false;
+    }
+    return waitFor([&]() {
+        auto package = std::make_shared<RobotModeDataPackage>();
+        return getPackage(package, 500) && !package->data().is_robot_protective_stopped;
+    }, 5s);
+}
+
+bool PrimaryPort::safetySystemRestart() {
+    if (!sendScript("restart safetyboard")) {
+        return false;
+    }
+    std::this_thread::sleep_for(500ms);
+    return waitFor([&]() { return getPrimarySafetyMode() == SafetyMode::NORMAL; }, 30s);
+}
+
+bool PrimaryPort::setSpeedScaling(int scaling) {
+    if (scaling < 0 || scaling > 100) {
+        ELITE_LOG_ERROR("Primary set speed failed: scaling must be in [0, 100], got %d", scaling);
+        return false;
+    }
+    if (getPrimaryRobotMode() == RobotMode::UNKNOWN) {
+        ELITE_LOG_ERROR("Primary set speed failed: no RobotModeData received from primary port");
+        return false;
+    }
+
+    std::ostringstream script;
+    script << "set speed " << std::fixed << std::setprecision(2) << (static_cast<double>(scaling) / 100.0);
+    if (!sendScript(script.str())) {
+        return false;
+    }
+    return waitFor([&]() { return getPrimarySpeedScaling() == scaling; }, 3s);
+}
+
+RobotMode PrimaryPort::getPrimaryRobotMode() {
+    auto package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(package, 500)) {
+        return RobotMode::UNKNOWN;
+    }
+    return package->data().robot_mode;
+}
+
+int PrimaryPort::getPrimarySpeedScaling() {
+    auto package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(package, 500)) {
+        return -1;
+    }
+    return static_cast<int>(std::round(package->data().target_speed_fraction * 100.0));
+}
+
+SafetyMode PrimaryPort::getPrimarySafetyMode() {
+    auto package = std::make_shared<MasterBoardDataPackage>();
+    if (!getPackage(package, 500)) {
+        return SafetyMode::UNKNOWN;
+    }
+    return package->data().safety_mode;
+}
+
+TaskStatus PrimaryPort::getPrimaryRunningStatus() {
+    auto package = std::make_shared<RobotModeDataPackage>();
+    if (!getPackage(package, 500)) {
+        return TaskStatus::UNKNOWN;
+    }
+    auto state = package->data();
+    if (state.is_task_paused) {
+        return TaskStatus::PAUSED;
+    }
+    if (state.is_task_running) {
+        return TaskStatus::PLAYING;
+    }
+    return TaskStatus::STOPPED;
+}
+
 bool PrimaryPort::getPackage(std::shared_ptr<PrimaryPackage> pkg, int timeout_ms) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        parser_sub_msg_.insert({pkg->getType(), pkg});
+        auto result = parser_sub_msg_.insert({pkg->getType(), pkg});
+        if (!result.second) {
+            ELITE_LOG_ERROR("Primary package type %d is already waiting for update", pkg->getType());
+            return false;
+        }
     }
 
-    return pkg->waitUpdate(timeout_ms);
+    bool updated = pkg->waitUpdate(timeout_ms);
+    if (!updated) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto psm = parser_sub_msg_.find(pkg->getType());
+        if (psm != parser_sub_msg_.end() && psm->second == pkg) {
+            parser_sub_msg_.erase(psm);
+        }
+    }
+    return updated;
 }
 
 bool PrimaryPort::parserMessage() {
@@ -230,6 +427,11 @@ bool PrimaryPort::parserMessageBody(int type, int package_len) {
         uint32_t sub_len = 0;
         for (auto iter = message_body_.begin(); iter < message_body_.end(); iter += sub_len) {
             EndianUtils::unpack(iter, sub_len);
+            const auto remaining_len = static_cast<size_t>(std::distance(iter, message_body_.end()));
+            if (sub_len <= HEAD_LENGTH || sub_len > remaining_len) {
+                ELITE_LOG_ERROR("Primary port sub-package len error: %d", sub_len);
+                return false;
+            }
             int sub_type = *(iter + 4);
 
             std::lock_guard<std::mutex> lock(mutex_);
@@ -260,7 +462,7 @@ bool PrimaryPort::socketReconnect(const std::string& ip, int port, bool is_last_
 
 void PrimaryPort::socketAsyncLoop(const std::string& ip, int port) {
     bool is_last_connect_success = true;
-    while (socket_async_thread_alive_) {
+    while (socket_async_thread_alive_.load()) {
         try {
             if (!parserMessage()) {
                 auto now = std::chrono::system_clock::now();

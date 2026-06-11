@@ -32,6 +32,38 @@ bool PrimaryPortInterface::sendScript(const std::string& script) {
     return impl_->primary_.sendScript(script);
 }
 
+bool PrimaryPortInterface::powerOn() {
+    return impl_->primary_.powerOn();
+}
+
+bool PrimaryPortInterface::powerOff() {
+    return impl_->primary_.powerOff();
+}
+
+bool PrimaryPortInterface::brakeRelease() {
+    return impl_->primary_.brakeRelease();
+}
+
+bool PrimaryPortInterface::pauseProgram() {
+    return impl_->primary_.pauseProgram();
+}
+
+bool PrimaryPortInterface::stopProgram() {
+    return impl_->primary_.stopProgram();
+}
+
+bool PrimaryPortInterface::unlockProtectiveStop() {
+    return impl_->primary_.unlockProtectiveStop();
+}
+
+bool PrimaryPortInterface::safetySystemRestart() {
+    return impl_->primary_.safetySystemRestart();
+}
+
+bool PrimaryPortInterface::setSpeedScaling(int scaling) {
+    return impl_->primary_.setSpeedScaling(scaling);
+}
+
 bool PrimaryPortInterface::getPackage(std::shared_ptr<PrimaryPackage> pkg, int timeout_ms) {
     return impl_->primary_.getPackage(pkg, timeout_ms);
 }
@@ -45,4 +77,3 @@ void PrimaryPortInterface::registerRobotExceptionCallback(std::function<void(Rob
 }
 
 } // namespace ELITE
-

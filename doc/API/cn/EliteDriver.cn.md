@@ -374,6 +374,21 @@ bool primaryReconnect()
 
 ---
 
+### ***获取机器人Primary端口接口***
+```cpp
+PrimaryPortInterface& primaryPort()
+```
+
+- ***功能***
+    获取 `EliteDriver` 内部持有并已连接的 `PrimaryPortInterface` 实例，避免用户再次实例化并重复连接 30001 端口。
+
+- ***返回值***：PrimaryPortInterface 引用。
+
+- ***注意***
+    返回对象的生命周期由 `EliteDriver` 管理，请勿在 `EliteDriver` 析构后继续使用该引用。
+
+---
+
 ### ***注册机器人异常回调***
 ```cpp
 void registerRobotExceptionCallback(std::function<void(RobotExceptionSharedPtr)> cb)

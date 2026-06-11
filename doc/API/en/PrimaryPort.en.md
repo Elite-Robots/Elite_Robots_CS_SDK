@@ -68,6 +68,125 @@ Sends an executable script to the robot.
 
 ---
 
+### ***Power On Robot***
+```cpp
+bool powerOn()
+```
+- ***Function***
+
+    Sends the normal script command `power on` through port 30001, and confirms the robot mode through Primary/30001 state packages.
+
+- ***Return Value***: Returns true if the script is sent successfully and `RobotModeData.robot_mode` becomes `IDLE` or `RUNNING`; returns false if sending fails or waiting for the target state times out.
+
+- ***Note***
+
+    If the current robot mode is already `IDLE` or `RUNNING`, this interface returns true directly.
+
+---
+
+### ***Power Off Robot***
+```cpp
+bool powerOff()
+```
+- ***Function***
+
+    Sends the normal script command `power off` through port 30001, and confirms the robot mode through Primary/30001 state packages.
+
+- ***Return Value***: Returns true if the script is sent successfully and `RobotModeData.robot_mode` becomes `POWER_OFF`; returns false if sending fails or waiting for the target state times out.
+
+---
+
+### ***Release Brakes***
+```cpp
+bool brakeRelease()
+```
+- ***Function***
+
+    Sends the normal script command `set robotmode run` through port 30001 to release the robot brakes.
+
+- ***Return Value***: Returns true if the script is sent successfully and `RobotModeData.robot_mode` becomes `RUNNING`; returns false if preconditions are not met, sending fails, or waiting for the target state times out.
+
+- ***Note***
+
+    This interface first checks Primary/30001 state packages: the robot mode must be `IDLE`, and the safety mode must be `NORMAL`, `REDUCED`, or `RECOVERY`. If the current robot mode is already `RUNNING`, this interface returns true directly.
+
+---
+
+### ***Pause Task***
+```cpp
+bool pauseProgram()
+```
+- ***Function***
+
+    Sends the normal script command `pause task` through port 30001 to pause the currently running task.
+
+- ***Return Value***: Returns true if the script is sent successfully and the task state becomes `PAUSED`; returns false if no task is running, sending fails, or waiting for the target state times out.
+
+- ***Note***
+
+    This interface determines the task state from `RobotModeData.is_task_running` and `RobotModeData.is_task_paused`. It sends the pause command only when the current task state is `PLAYING`. If the task is already `PAUSED`, it returns true directly.
+
+---
+
+### ***Stop Task***
+```cpp
+bool stopProgram()
+```
+- ***Function***
+
+    Sends the normal script command `stop task` through port 30001 to stop the current task.
+
+- ***Return Value***: Returns true if the script is sent successfully and the task state becomes `STOPPED`; returns false if sending fails or waiting for the target state times out.
+
+- ***Note***
+
+    This interface determines the task state from `RobotModeData.is_task_running` and `RobotModeData.is_task_paused`. If the current task state is already `STOPPED`, it returns true directly.
+
+---
+
+### ***Unlock Protective Stop***
+```cpp
+bool unlockProtectiveStop()
+```
+- ***Function***
+
+    Sends the normal script command `set unlock protective stop` through port 30001 to unlock the robot protective stop state.
+
+- ***Return Value***: Returns true if the script is sent successfully and `RobotModeData.is_robot_protective_stopped` becomes false; returns false if sending fails or waiting for the target state times out.
+
+---
+
+### ***Restart Safety System***
+```cpp
+bool safetySystemRestart()
+```
+- ***Function***
+
+    Sends the normal script command `restart safetyboard` through port 30001 to restart the safety board.
+
+- ***Return Value***: Returns true if the script is sent successfully and `MasterBoardData.safety_mode` becomes `NORMAL`; returns false if sending fails or waiting for the target state times out.
+
+---
+
+### ***Set Speed Scaling***
+```cpp
+bool setSpeedScaling(int scaling)
+```
+- ***Function***
+
+    Sends the normal script command `set speed <scaling / 100.0>` through port 30001 to set the target robot speed scaling.
+
+- ***Parameters***
+    - scaling: Target speed percentage.
+
+- ***Return Value***: Returns true if the script is sent successfully and `RobotModeData.target_speed_fraction` is read back as the target value; returns false if sending fails or waiting for the target state times out.
+
+- ***Note***
+
+    Primary/30001 state parsing is only used internally by these control APIs to confirm command results. It is not exposed as a public `PrimaryPortInterface` state-query API. Use RTSI for external robot-state reads.
+
+---
+
 ### ***Get Data Packet***
 ```cpp
 bool getPackage(std::shared_ptr<PrimaryPackage> pkg, int timeout_ms)
@@ -163,6 +282,68 @@ Waits for the data packet to be updated. It is called in the `getPackage()` func
 - ***Parameters***
     - timeout_ms: The timeout.
 - ***Return Value***: Returns true if it does not time out, and false if it times out.
+
+---
+
+# PrimaryStatePackage Class
+
+## Introduction
+
+The SDK provides several 30001 state sub-package parsers for robot-state confirmation used by the control APIs. These parsers follow the same flow as custom `PrimaryPackage` implementations: inherit from `PrimaryPackage`, implement `parser()`, and use `PrimaryPortInterface::getPackage()` to obtain the corresponding sub-package.
+
+## Header File of PrimaryStatePackage
+
+```cpp
+#include <Elite/PrimaryStatePackage.hpp>
+```
+
+## RobotModeDataPackage Class
+
+### ***Function***
+
+Parses the `ROBOT_STATE_PACKAGE_TYPE_ROBOT_MODE_DATA = 0` sub-package.
+
+### ***Main Fields***
+
+- `robot_mode`: Robot mode.
+- `target_speed_fraction`: Target speed scaling fraction.
+- `speed_scaling`: Robot program running speed scaling fraction.
+- `is_robot_power_on`: Whether the robot is powered on.
+- `is_robot_protective_stopped`: Whether the robot is in protective stop.
+- `is_task_running`: Whether the task is running.
+- `is_task_paused`: Whether the task is paused.
+
+### ***Usage***
+
+```cpp
+auto package = std::make_shared<RobotModeDataPackage>();
+if (primary.getPackage(package, 500)) {
+    RobotModeData data = package->data();
+}
+```
+
+## MasterBoardDataPackage Class
+
+### ***Function***
+
+Parses the safety-status fields in the `ROBOT_STATE_PACKAGE_TYPE_MASTERBOARD_DATA = 3` sub-package.
+
+### ***Main Fields***
+
+- `safety_mode`: Safety mode.
+- `is_robot_in_reduced_mode`: Whether the robot is in reduced mode.
+- `operational_mode_selector_input`: Operational mode selector input state.
+- `threeposition_enabling_device_input`: Three-position enabling device input state.
+- `internal_use`: Internal-use field.
+
+### ***Usage***
+
+```cpp
+auto package = std::make_shared<MasterBoardDataPackage>();
+if (primary.getPackage(package, 500)) {
+    MasterBoardData data = package->data();
+}
+```
 
 ---
 
