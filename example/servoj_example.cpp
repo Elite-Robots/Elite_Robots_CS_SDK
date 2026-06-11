@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2025, Elite Robots.
-#include <Elite/DashboardClient.hpp>
 #include <Elite/DataType.hpp>
 #include <Elite/EliteDriver.hpp>
 #include <Elite/Log.hpp>
@@ -24,7 +23,6 @@ namespace po = boost::program_options;
 
 static std::unique_ptr<EliteDriver> s_driver;
 static std::unique_ptr<RtsiIOInterface> s_rtsi_client;
-static std::unique_ptr<DashboardClient> s_dashboard;
 
 int main(int argc, char** argv) {
 #if defined(__linux) || defined(linux) || defined(__linux__)
@@ -77,13 +75,6 @@ int main(int argc, char** argv) {
     config.servoj_time = 0.004;
     s_driver = std::make_unique<EliteDriver>(config);
     s_rtsi_client = std::make_unique<RtsiIOInterface>("output_recipe.txt", "input_recipe.txt", 250);
-    s_dashboard = std::make_unique<DashboardClient>();
-    ELITE_LOG_INFO("Connecting to the dashboard");
-    if (!s_dashboard->connect(config.robot_ip)) {
-        ELITE_LOG_FATAL("Failed to connect to the dashboard.");
-        return 1;
-    }
-    ELITE_LOG_INFO("Successfully connected to the dashboard");
 
     ELITE_LOG_INFO("Connecting to the RTSI");
     if (!s_rtsi_client->connect(config.robot_ip)) {
@@ -95,15 +86,17 @@ int main(int argc, char** argv) {
     VersionInfo version = s_rtsi_client->getControllerVersion();
     ELITE_LOG_INFO("Controller version is %s", version.toString().c_str());
 
+    PrimaryPortInterface& primary = s_driver->primaryPort();
+
     ELITE_LOG_INFO("Start powering on...");
-    if (!s_dashboard->powerOn()) {
+    if (!primary.powerOn()) {
         ELITE_LOG_FATAL("Power-on failed");
         return 1;
     }
     ELITE_LOG_INFO("Power-on succeeded");
 
     ELITE_LOG_INFO("Start releasing brake...");
-    if (!s_dashboard->brakeRelease()) {
+    if (!primary.brakeRelease()) {
         ELITE_LOG_FATAL("Release brake fail");
         return 1;
     }
@@ -117,10 +110,7 @@ int main(int argc, char** argv) {
             }
         }
     } else {
-        if (!config.headless_mode && !s_dashboard->playProgram()) {
-            ELITE_LOG_FATAL("Fail to play program");
-            return 1;
-        }
+        ELITE_LOG_INFO("Please start the External Control task from the robot side.");
     }
 
     ELITE_LOG_INFO("Wait external control script run...");
