@@ -187,6 +187,10 @@ bool PrimaryPort::safetySystemRestart() {
 }
 
 bool PrimaryPort::setSpeedScaling(int scaling) {
+    if (scaling < 0 || scaling > 100) {
+        ELITE_LOG_ERROR("Primary set speed failed: scaling must be in [0, 100], got %d", scaling);
+        return false;
+    }
     if (getPrimaryRobotMode() == RobotMode::UNKNOWN) {
         ELITE_LOG_ERROR("Primary set speed failed: no RobotModeData received from primary port");
         return false;
@@ -211,7 +215,7 @@ RobotMode PrimaryPort::getPrimaryRobotMode() {
 int PrimaryPort::getPrimarySpeedScaling() {
     auto package = std::make_shared<RobotModeDataPackage>();
     if (!getPackage(package, 500)) {
-        return 0;
+        return -1;
     }
     return static_cast<int>(std::round(package->data().target_speed_fraction * 100.0));
 }
