@@ -285,6 +285,68 @@ Waits for the data packet to be updated. It is called in the `getPackage()` func
 
 ---
 
+# PrimaryStatePackage Class
+
+## Introduction
+
+The SDK provides several 30001 state sub-package parsers for robot-state confirmation used by the control APIs. These parsers follow the same flow as custom `PrimaryPackage` implementations: inherit from `PrimaryPackage`, implement `parser()`, and use `PrimaryPortInterface::getPackage()` to obtain the corresponding sub-package.
+
+## Header File of PrimaryStatePackage
+
+```cpp
+#include <Elite/PrimaryStatePackage.hpp>
+```
+
+## RobotModeDataPackage Class
+
+### ***Function***
+
+Parses the `ROBOT_STATE_PACKAGE_TYPE_ROBOT_MODE_DATA = 0` sub-package.
+
+### ***Main Fields***
+
+- `robot_mode`: Robot mode.
+- `target_speed_fraction`: Target speed scaling fraction.
+- `speed_scaling`: Robot program running speed scaling fraction.
+- `is_robot_power_on`: Whether the robot is powered on.
+- `is_robot_protective_stopped`: Whether the robot is in protective stop.
+- `is_task_running`: Whether the task is running.
+- `is_task_paused`: Whether the task is paused.
+
+### ***Usage***
+
+```cpp
+auto package = std::make_shared<RobotModeDataPackage>();
+if (primary.getPackage(package, 500)) {
+    RobotModeData data = package->data();
+}
+```
+
+## MasterBoardDataPackage Class
+
+### ***Function***
+
+Parses the safety-status fields in the `ROBOT_STATE_PACKAGE_TYPE_MASTERBOARD_DATA = 3` sub-package.
+
+### ***Main Fields***
+
+- `safety_mode`: Safety mode.
+- `is_robot_in_reduced_mode`: Whether the robot is in reduced mode.
+- `operational_mode_selector_input`: Operational mode selector input state.
+- `threeposition_enabling_device_input`: Three-position enabling device input state.
+- `internal_use`: Internal-use field.
+
+### ***Usage***
+
+```cpp
+auto package = std::make_shared<MasterBoardDataPackage>();
+if (primary.getPackage(package, 500)) {
+    MasterBoardData data = package->data();
+}
+```
+
+---
+
 # KinematicsInfo Class
 
 ## Introduction

@@ -314,6 +314,68 @@ bool waitUpdate(int timeout_ms)
 
 ---
 
+# PrimaryStatePackage 类
+
+## 简介
+
+SDK 提供了部分 30001 状态子报文解析类，用于解析控制接口内部确认所需的机器人状态。此类解析流程与自定义 `PrimaryPackage` 一致：继承 `PrimaryPackage`、实现 `parser()`，并通过 `PrimaryPortInterface::getPackage()` 获取对应子报文。
+
+## PrimaryStatePackage 头文件
+
+```cpp
+#include <Elite/PrimaryStatePackage.hpp>
+```
+
+## RobotModeDataPackage 类
+
+### ***功能***
+
+解析 `ROBOT_STATE_PACKAGE_TYPE_ROBOT_MODE_DATA = 0` 子报文。
+
+### ***主要字段***
+
+- `robot_mode`：机器人模式。
+- `target_speed_fraction`：目标速度缩放比。
+- `speed_scaling`：机器人程序运行速度缩放比。
+- `is_robot_power_on`：机器人是否上电。
+- `is_robot_protective_stopped`：机器人是否处于保护停止。
+- `is_task_running`：任务是否运行。
+- `is_task_paused`：任务是否暂停。
+
+### ***使用方式***
+
+```cpp
+auto package = std::make_shared<RobotModeDataPackage>();
+if (primary.getPackage(package, 500)) {
+    RobotModeData data = package->data();
+}
+```
+
+## MasterBoardDataPackage 类
+
+### ***功能***
+
+解析 `ROBOT_STATE_PACKAGE_TYPE_MASTERBOARD_DATA = 3` 子报文中的安全状态字段。
+
+### ***主要字段***
+
+- `safety_mode`：安全模式。
+- `is_robot_in_reduced_mode`：机器人是否处于缩减模式。
+- `operational_mode_selector_input`：模式选择器输入状态。
+- `threeposition_enabling_device_input`：三位开关输入状态。
+- `internal_use`：内部使用字段。
+
+### ***使用方式***
+
+```cpp
+auto package = std::make_shared<MasterBoardDataPackage>();
+if (primary.getPackage(package, 500)) {
+    MasterBoardData data = package->data();
+}
+```
+
+---
+
 # KinematicsInfo 类
 
 ## 简介
