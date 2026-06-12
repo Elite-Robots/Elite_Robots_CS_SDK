@@ -102,6 +102,9 @@ cmake -DCMAKE_CXX_STANDARD=14 ..
 - ELITE_COMPILE_KIN_PLUGIN
     - 值：BOOL
     - 说明：如果为TRUE，则会编译基于KDL的运动学插件。需要安装 `orocos-kdl` 和 `Eigen3`。
+- ELITE_COMPILE_POSE_ALG_PLUGIN
+    - 值：BOOL
+    - 说明：如果为TRUE，则会编译位姿运算插件。需要安装 `Eigen3`。
 - ELITE_ROS2_BUILD
     - 值：BOOL
     - 说明：如果系统存在ROS环境则默认为TRUE，使用ros环境编译并导入ros环境变量。若为FALSE，则只编译纯c++相关库

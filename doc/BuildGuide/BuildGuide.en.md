@@ -102,6 +102,9 @@ In addition to the common CMake configuration options, this project also has the
 - ELITE_COMPILE_KIN_PLUGIN
     - Value: BOOL
     - Description: If set to TRUE, the KDL-based kinematics plugin will be compiled. Requires `orocos-kdl` and `Eigen3` to be installed.
+- ELITE_COMPILE_POSE_ALG_PLUGIN
+    - Type: BOOL
+    - Description: If set to TRUE, the pose calculation plugin will be compiled. Eigen3 is required for this feature.
 - ELITE_ROS2_BUILD
     - Value: BOOL
     - Description: If a ROS environment is detected on the system, this option defaults to TRUE, and the project will be built using the ROS environment with ROS environment variables imported.If set to FALSE, only the pure C++ libraries will be built.
