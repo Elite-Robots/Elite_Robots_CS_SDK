@@ -164,7 +164,7 @@ struct TrajectoryMotionFeedback {
     int32_t point_index = -1;
     int32_t total_points = 0;
     int32_t result = -1;
-    vector6d_t point{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    vector6d_t point{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
 };
 
 #if (ELITE_SDK_COMPILE_STANDARD >= 17)

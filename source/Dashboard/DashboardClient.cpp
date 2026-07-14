@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2025, Elite Robots.
 #include "DashboardClient.hpp"
+#include <Common/BoostAsioCompat.hpp>
 #include <boost/asio.hpp>
 #include <iostream>
+#include <mutex>
 #include <regex>
 #include <thread>
 #include "DataType.hpp"
@@ -14,7 +16,7 @@ using namespace std::chrono_literals;
 class DashboardClient::Impl {
    public:
     std::mutex socket_mutex_;
-    boost::asio::io_context io_context_;
+    BoostIoContext io_context_;
     std::unique_ptr<boost::asio::ip::tcp::socket> socket_ptr_;
     std::unique_ptr<boost::asio::ip::tcp::resolver> resolver_ptr_;
 
@@ -40,7 +42,7 @@ bool DashboardClient::connect(const std::string& ip, int port) {
         boost::asio::detail::socket_option::boolean<IPPROTO_TCP, TCP_QUICKACK> quickack(true);
         impl_->socket_ptr_->set_option(quickack);
 #endif
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip), port);
+        boost::asio::ip::tcp::endpoint endpoint(makeBoostAddress(ip), port);
         boost::system::error_code ec = boost::asio::error::would_block;
 
         impl_->socket_ptr_->async_connect(endpoint, [&](const boost::system::error_code& error) {
@@ -58,7 +60,7 @@ bool DashboardClient::connect(const std::string& ip, int port) {
             // TODO: When all tasks in the io_context are completed, the io_context enters a 'stopped' state.
             // How can we prevent the io_context from entering the 'stopped' state without using the 'restart' method?
             if (impl_->io_context_.stopped()) {
-                impl_->io_context_.restart();
+                restartBoostIoContext(impl_->io_context_);
             }
         } while (ec == boost::asio::error::would_block);
 
@@ -402,11 +404,11 @@ std::string DashboardClient::asyncReadLine(unsigned timeout_ms) {
                                   [&](const boost::system::error_code& error, std::size_t nb) { ec = error; });
 
     do {
-        impl_->io_context_.run_for(std::chrono::milliseconds(timeout_ms));
+        runBoostIoContextFor(impl_->io_context_, std::chrono::milliseconds(timeout_ms));
         // TODO: When all tasks in the io_context are completed, the io_context enters a 'stopped' state.
         // How can we prevent the io_context from entering the 'stopped' state without using the 'restart' method?
         if (impl_->io_context_.stopped()) {
-            impl_->io_context_.restart();
+            restartBoostIoContext(impl_->io_context_);
         }
     } while (ec == boost::asio::error::would_block);
     if (ec) {

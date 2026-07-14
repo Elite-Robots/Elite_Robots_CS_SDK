@@ -7,8 +7,8 @@
 #define __ELITE__SERIAL_COMMUNICATION_IMPL_HPP__
 
 
+#include <Common/BoostAsioCompat.hpp>
 #include <Elite/SerialCommunication.hpp>
-#include <boost/asio.hpp>
 #include <mutex>
 
 namespace ELITE {
@@ -25,7 +25,7 @@ class SerialCommunicationImpl : public SerialCommunication {
     int socat_pid_;
     std::string robot_ip_;
     std::mutex socket_mutex_;
-    boost::asio::io_context io_context_;
+    BoostIoContext io_context_;
     boost::asio::ip::tcp::socket socket_;
     
     void socketDisconnect();

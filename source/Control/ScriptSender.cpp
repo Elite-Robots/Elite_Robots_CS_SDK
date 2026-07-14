@@ -16,14 +16,16 @@ ScriptSender::ScriptSender(int port, const std::string& program, std::shared_ptr
 ScriptSender::~ScriptSender() {}
 
 void ScriptSender::doAccept() {
+    auto new_socket = std::make_shared<boost::asio::ip::tcp::socket>(*(resource_->io_context_ptr_));
     // Accept call back
-    auto accept_cb = [this](boost::system::error_code ec, boost::asio::ip::tcp::socket sock) {
-        auto new_socket = std::make_shared<boost::asio::ip::tcp::socket>(std::move(sock));
-        responseRequest(new_socket);
+    auto accept_cb = [this, new_socket](boost::system::error_code ec) {
+        if (!ec) {
+            responseRequest(new_socket);
+        }
         ScriptSender::doAccept();
     };
     acceptor_->listen(1);
-    acceptor_->async_accept(*(resource_->io_context_ptr_), accept_cb);
+    acceptor_->async_accept(*new_socket, accept_cb);
 }
 
 void ScriptSender::responseRequest(std::shared_ptr<boost::asio::ip::tcp::socket> sock) {

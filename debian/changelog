@@ -1,3 +1,38 @@
+elite-cs-series-sdk (1.4.4-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 17:34:00 +0800
+
+elite-cs-series-sdk (1.4.3-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 17:34:00 +0800
+
+elite-cs-series-sdk (1.4.2-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 16:34:00 +0800
+
+elite-cs-series-sdk (1.4.1-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 16:20:00 +0800
+
+elite-cs-series-sdk (1.4.0-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 13:22:54 +0800
+
 elite-cs-series-sdk (1.4.0-focal-multiarch) focal; urgency=medium
 
   * Focal upload.

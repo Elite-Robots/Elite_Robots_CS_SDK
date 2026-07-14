@@ -10,7 +10,7 @@
 - cmake >= 3.22.1
 
 ## Build & Install
-如果你的操作系统是 Ubuntu20.04、Ubuntu22.04、Ubuntu24.04，那么可以用下面的指令直接安装elite-cs-series-sdk:
+如果你的操作系统是 Ubuntu，那么可以用下面的指令直接安装elite-cs-series-sdk:
 ```bash
 sudo add-apt-repository ppa:elite-robots/cs-robot-series-sdk
 sudo apt update

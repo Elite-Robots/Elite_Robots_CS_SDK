@@ -219,15 +219,14 @@ TcpServer::StaticResource::StaticResource() {
         return;
     }
     if (!io_context_ptr_) {
-        io_context_ptr_ = std::make_shared<boost::asio::io_context>();
+        io_context_ptr_ = std::make_shared<BoostIoContext>();
     }
-    work_guard_ptr_.reset(new boost::asio::executor_work_guard<boost::asio::io_context::executor_type>(
-        boost::asio::make_work_guard(*io_context_ptr_)));
+    work_guard_ptr_ = makeBoostIoWorkGuard(*io_context_ptr_);
     auto io_ctx = io_context_ptr_;
     server_thread_.reset(new std::thread([io_ctx]() {
         try {
             if (io_ctx->stopped()) {
-                io_ctx->restart();
+                restartBoostIoContext(*io_ctx);
             }
             io_ctx->run();
             ELITE_LOG_INFO("TCP server exit thread");
@@ -244,7 +243,7 @@ void TcpServer::StaticResource::shutdown() {
     if (shutting_down_.exchange(true)) {
         return;
     }
-    work_guard_ptr_->reset();
+    work_guard_ptr_.reset();
     io_context_ptr_->stop();
     if (server_thread_ && server_thread_->joinable()) {
         if (std::this_thread::get_id() != server_thread_->get_id()) {
@@ -254,7 +253,6 @@ void TcpServer::StaticResource::shutdown() {
             ELITE_LOG_WARN("TcpServer::StaticResource's thread is waiting for itself; setting it to detach.");
         }
     }
-    work_guard_ptr_.reset();
     server_thread_.reset();
     io_context_ptr_.reset();
 }

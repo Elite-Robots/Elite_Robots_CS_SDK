@@ -3,6 +3,19 @@
 # output every command that modifies files on the build system.
 export DH_VERBOSE = 1
 
+DEB_DISTRIBUTION := $(shell dpkg-parsechangelog -S Distribution)
+CMAKE_CXX_STANDARD := 17
+ELITE_LINK_BOOST_SYSTEM := OFF
+
+ifeq ($(DEB_DISTRIBUTION),xenial)
+CMAKE_CXX_STANDARD := 14
+ELITE_LINK_BOOST_SYSTEM := ON
+endif
+
+ifeq ($(DEB_DISTRIBUTION),bionic)
+ELITE_LINK_BOOST_SYSTEM := ON
+endif
+
 
 # see FEATURE AREAS in dpkg-buildflags(1)
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
@@ -22,7 +35,8 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 # This is example for Cmake (See https://bugs.debian.org/641051 )
 override_dh_auto_configure:
 	dh_auto_configure -- \
-	-DCMAKE_CXX_STANDARD=17
+	-DCMAKE_CXX_STANDARD=$(CMAKE_CXX_STANDARD) \
+	-DELITE_LINK_BOOST_SYSTEM=$(ELITE_LINK_BOOST_SYSTEM)
 
 override_dh_clean:
 	dh_clean

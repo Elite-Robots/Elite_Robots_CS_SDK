@@ -23,13 +23,13 @@ bool SerialCommunicationImpl::connect(int timeout_ms) {
         boost::asio::detail::socket_option::boolean<IPPROTO_TCP, TCP_QUICKACK> quickack(true);
         socket_.set_option(quickack);
 #endif
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(robot_ip_), tcp_port_);
+        boost::asio::ip::tcp::endpoint endpoint(makeBoostAddress(robot_ip_), tcp_port_);
         auto ec_ptr = std::make_shared<boost::system::error_code>(boost::asio::error::would_block);
         socket_.async_connect(endpoint, [ec_ptr](const boost::system::error_code& error) { *ec_ptr = error; });
         if (io_context_.stopped()) {
-            io_context_.restart();
+            restartBoostIoContext(io_context_);
         }
-        io_context_.run_for(std::chrono::milliseconds(timeout_ms));
+        runBoostIoContextFor(io_context_, std::chrono::milliseconds(timeout_ms));
         if (*ec_ptr) {
             ELITE_LOG_ERROR("Serial connect to robot fail: %s", boost::system::system_error(*ec_ptr).what());
             return false;
@@ -98,13 +98,13 @@ int SerialCommunicationImpl::read(uint8_t* data, size_t size, int timeout_ms) {
         return read_len;
     } else {
         if (io_context_.stopped()) {
-            io_context_.restart();
+            restartBoostIoContext(io_context_);
         }
         boost::asio::async_read(socket_, boost::asio::buffer(data, size), [&](const boost::system::error_code& ec, std::size_t nb) {
             error_code = ec;
             read_len = nb;
         });
-        io_context_.run_for(std::chrono::milliseconds(timeout_ms));
+        runBoostIoContextFor(io_context_, std::chrono::milliseconds(timeout_ms));
         if (error_code && read_len <= 0) {
             ELITE_LOG_ERROR("Serial socket receive fail: %s", error_code.message().c_str());
             return -1;

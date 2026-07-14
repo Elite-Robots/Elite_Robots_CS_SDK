@@ -402,9 +402,9 @@ bool PrimaryPort::parserMessageBody(int type, int package_len) {
                                 read_len = n;
                             });
     if (io_context_.stopped()) {
-        io_context_.restart();
+        restartBoostIoContext(io_context_);
     }
-    io_context_.run_for(500ms);
+    runBoostIoContextFor(io_context_, 500ms);
     if (ec) {
         ELITE_LOG_ERROR("Primary port receive package body had expection: %s", boost::system::system_error(ec).what());
         return false;
@@ -492,13 +492,13 @@ bool PrimaryPort::socketConnect(const std::string& ip, int port, bool is_last_co
 #if defined(__linux) || defined(linux) || defined(__linux__)
         socket_ptr_->set_option(boost::asio::detail::socket_option::boolean<IPPROTO_TCP, TCP_QUICKACK>(true));
 #endif
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip), port);
+        boost::asio::ip::tcp::endpoint endpoint(makeBoostAddress(ip), port);
         boost::system::error_code connect_ec;
         socket_ptr_->async_connect(endpoint, [&](const boost::system::error_code& ec) { connect_ec = ec; });
         if (io_context_.stopped()) {
-            io_context_.restart();
+            restartBoostIoContext(io_context_);
         }
-        io_context_.run_for(500ms);
+        runBoostIoContextFor(io_context_, 500ms);
         if (connect_ec) {
             socket_ptr_.reset();
             if (is_last_connect_success) {
@@ -534,9 +534,9 @@ void PrimaryPort::socketDisconnect() {
             socket_ptr_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignore_ec);
             socket_ptr_->close(ignore_ec);
             if (io_context_.stopped()) {
-                io_context_.restart();
+                restartBoostIoContext(io_context_);
             }
-            io_context_.run_for(500ms);
+            runBoostIoContextFor(io_context_, 500ms);
         } catch (const std::exception& e) {
             ELITE_LOG_WARN("Primary port socket disconnect throw exception:%s", e.what());
         }
