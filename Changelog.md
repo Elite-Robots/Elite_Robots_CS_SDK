@@ -1,6 +1,6 @@
 # Changelog for Elite Robots CS SDK
 
-## [Unrelease]
+## [Unreleased]
 
 ### Added
 - Added the `ClassLoader` module, registration macros, and documentation to support plug-in functionality.
@@ -10,6 +10,16 @@
 - Add `EliteDriverReconstructTest` for testing struct reconstruction scenarios.
 - Add `TcpServerPortOccupyTest` for testing TCP server port occupation handling.
 - Added an overload of `EliteDriver::writeTrajectoryPoint()` to support setting velocity and acceleration parameters.
+- Added the `EliteDriver::primaryPort()` interface.
+- Added the following interfaces to `PrimaryPortInterface`:
+  - `powerOn()`
+  - `powerOff()`
+  - `brakeRelease()`
+  - `pauseProgram()`
+  - `stopProgram()`
+  - `unlockProtectiveStop()`
+  - `safetySystemRestart()`
+  - `setSpeedScaling()`
 
 ### Changed
 - Document the plugin build option, its dependency requirements (`orocos-kdl`, `Eigen3`, etc.), and the updated build status messages so users know how to enable the kinematics plugin.

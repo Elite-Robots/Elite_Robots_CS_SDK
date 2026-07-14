@@ -1,6 +1,6 @@
 # Changelog for Elite Robots CS SDK
 
-## [Unrelease]
+## [Unreleased]
 
 ### 新增
 - 新增 `ClassLoader` 模块、注册宏、文档，用于支持插件化的功能。
@@ -9,7 +9,17 @@
 - 为 `EliteDriverConfig` 添加可配置的 servo 外推和保持参数（`servoj_extrapolate_max_time`、`servoj_decelerate_time`、`servoj_hold_velocity_threshold`、`servoj_hold_stable_time` 以及更正后的 `servoj_lookahead_time`），并将其通到脚本与调优文档中。
 - 新增 `EliteDriverReconstructTest` 用于测试结构体重构场景。
 - 新增 `TcpServerPortOccupyTest` 用于测试 TCP 服务器端口占用处理。
-- 新增 `EliteDriver::writeTrajectoryPoint()`的重载，支持设置速度、加速度参数。
+- 新增 `EliteDriver::writeTrajectoryPoint()` 的重载，支持设置速度、加速度参数。
+- 新增 `EliteDriver::primaryPort()` 接口。
+- `PrimaryPortInterface` 新增以下接口：
+  - `powerOn()`
+  - `powerOff()`
+  - `brakeRelease()`
+  - `pauseProgram()`
+  - `stopProgram()`
+  - `unlockProtectiveStop()`
+  - `safetySystemRestart()`
+  - `setSpeedScaling()`
 
 ### 更改
 - 在构建指南中说明插件编译选项及其依赖（如 `orocos-kdl`、`Eigen3`），并提高配置输出的可见度，方便用户启用运动学插件。
