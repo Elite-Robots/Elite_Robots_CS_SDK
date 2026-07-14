@@ -1,6 +1,6 @@
 # Changelog for Elite Robots CS SDK
 
-## [Unreleased]
+## [v1.4.0] - 2026-07-14
 
 ### Added
 - Added the `ClassLoader` module, registration macros, and documentation to support plug-in functionality.
