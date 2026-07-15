@@ -1,6 +1,6 @@
 # Changelog for Elite Robots CS SDK
 
-## [v1.4.0] - 2026-07-14
+## [v1.4.5] - 2026-07-14
 
 ### 新增
 - 新增 `ClassLoader` 模块、注册宏、文档，用于支持插件化的功能。

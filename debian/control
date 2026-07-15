@@ -18,5 +18,5 @@ Architecture: amd64 arm64
 Depends: 
   ${shlibs:Depends},
   ${misc:Depends},
-  libssh-dev
+  libssh-dev${elite:BoostDepends}
 Description: Elite Robots CS Series SDK.

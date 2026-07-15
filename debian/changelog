@@ -1,3 +1,53 @@
+elite-cs-series-sdk (1.4.5-resolute-multiarch) resolute; urgency=medium
+
+  * Resolute upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-focal-multiarch) focal; urgency=medium
+
+  * Focal upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-noble-multiarch) noble; urgency=medium
+
+  * Noble upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-jammy-multiarch) jammy; urgency=medium
+
+  * Jammy upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-bionic-multiarch) bionic; urgency=medium
+
+  * Bionic upload.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 21:20:00 +0800
+
+elite-cs-series-sdk (1.4.5-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Fix find_package error.
+  * Auto install boost.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 17:34:00 +0800
+
 elite-cs-series-sdk (1.4.4-xenial-multiarch) xenial; urgency=medium
 
   * Xenial upload.

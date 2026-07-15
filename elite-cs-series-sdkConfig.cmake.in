@@ -1,12 +1,9 @@
 @PACKAGE_INIT@
 
-include(CMakeFindDependencyMacro)
-
 set(_elite_boost_components "@ELITE_BOOST_FIND_COMPONENTS@")
 if(_elite_boost_components)
+    include(CMakeFindDependencyMacro)
     find_dependency(Boost COMPONENTS ${_elite_boost_components})
-else()
-    find_dependency(Boost)
 endif()
 unset(_elite_boost_components)
 
