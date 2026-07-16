@@ -1,3 +1,39 @@
+elite-cs-series-sdk (1.4.6-noble-multiarch) noble; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-jammy-multiarch) jammy; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-focal-multiarch) focal; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-bionic-multiarch) bionic; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-xenial-multiarch) xenial; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-resolute-multiarch) resolute; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
 elite-cs-series-sdk (1.4.5-resolute-multiarch) resolute; urgency=medium
 
   * Resolute upload.
