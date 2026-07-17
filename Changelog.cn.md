@@ -1,6 +1,19 @@
 # Changelog for Elite Robots CS SDK
 
-## [Unreleased]
+## [v1.4.7] - 2026-07-17
+
+### 更改
+- 将 SDK 版本提升至 1.4.7，并新增 Xenial Debian 软件包发布记录。
+
+## [v1.4.6] - Unreleased
+
+### 更改
+- 将 Debian 软件包版本提升至 1.4.6，用于多发行版构建，并兼容 Ubuntu 16.04 与 18.04。
+
+### 修复
+- 通过使用 `<cmath>` 中的 `std::round` 修复 GCC 15 编译失败的问题。
+
+## [v1.4.0] - Unreleased
 
 ### 新增
 - 新增 `ClassLoader` 模块、注册宏、文档，用于支持插件化的功能。

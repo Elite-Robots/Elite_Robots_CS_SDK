@@ -8,9 +8,9 @@
 
 #include "RtsiRecipe.hpp"
 #include "VersionInfo.hpp"
+#include <Common/BoostAsioCompat.hpp>
 
 #include <array>
-#include <boost/asio.hpp>
 #include <functional>
 #include <memory>
 #include <tuple>
@@ -146,7 +146,7 @@ class RtsiClient {
    private:
     enum class PackageType : uint8_t;
 
-    boost::asio::io_context io_context_;
+    BoostIoContext io_context_;
     std::unique_ptr<boost::asio::ip::tcp::socket> socket_ptr_;
     std::unique_ptr<boost::asio::ip::tcp::resolver> resolver_ptr_;
 

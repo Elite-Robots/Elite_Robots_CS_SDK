@@ -27,7 +27,7 @@ void RtsiClient::connect(const std::string& ip, int port) {
         socket_ptr_->set_option(boost::asio::detail::socket_option::boolean<IPPROTO_TCP, TCP_QUICKACK>(true));
         socket_ptr_->set_option(boost::asio::detail::socket_option::integer<SOL_SOCKET, SO_PRIORITY>(6));
 #endif
-        boost::asio::ip::tcp::endpoint endpoint(boost::asio::ip::make_address(ip), port);
+        boost::asio::ip::tcp::endpoint endpoint(makeBoostAddress(ip), port);
         socket_ptr_->async_connect(endpoint, [&](const boost::system::error_code& error) {
             if (!error) {
                 connection_state = ConnectionState::CONNECTED;
@@ -224,14 +224,14 @@ int RtsiClient::receiveSocket(std::vector<uint8_t>& buff, int size, int offset, 
     // Restart the io_context, as it may have been left in the "stopped" state
     // by a previous operation.
     if (io_context_.stopped()) {
-        io_context_.restart();
+        restartBoostIoContext(io_context_);
     }
 
     // Block until the asynchronous operation has completed, or timed out. If
     // the pending asynchronous operation is a composed operation, the deadline
     // applies to the entire operation, rather than individual operations on
     // the socket.
-    io_context_.run_for(std::chrono::milliseconds(timeout_ms));
+    runBoostIoContextFor(io_context_, std::chrono::milliseconds(timeout_ms));
 
     // If the asynchronous operation completed successfully then the io_context
     // would have been stopped due to running out of work. If it was not
@@ -241,7 +241,7 @@ int RtsiClient::receiveSocket(std::vector<uint8_t>& buff, int size, int offset, 
         socketDisconnect();
 
         // Clear socket receive or send operation
-        auto work = boost::asio::make_work_guard(io_context_);
+        auto work = makeBoostIoWorkGuard(io_context_);
         io_context_.run();
         work.reset();
 

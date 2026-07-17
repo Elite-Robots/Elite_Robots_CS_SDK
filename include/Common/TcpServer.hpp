@@ -7,7 +7,7 @@
 #define __TCP_SERVER_HPP__
 
 #include <atomic>
-#include <boost/asio.hpp>
+#include <Common/BoostAsioCompat.hpp>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -23,8 +23,8 @@ class TcpServer : public std::enable_shared_from_this<TcpServer> {
     class StaticResource {
        public:
         std::unique_ptr<std::thread> server_thread_;
-        std::shared_ptr<boost::asio::executor_work_guard<boost::asio::io_context::executor_type>> work_guard_ptr_;
-        std::shared_ptr<boost::asio::io_context> io_context_ptr_;
+        std::shared_ptr<BoostIoWorkGuard> work_guard_ptr_;
+        std::shared_ptr<BoostIoContext> io_context_ptr_;
         StaticResource();
         ~StaticResource();
         void shutdown();

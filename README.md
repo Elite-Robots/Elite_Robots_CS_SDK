@@ -11,7 +11,7 @@ This SDK is a C++ library for Elibot Robots' CS series robotic arms. With this l
 - cmake version >= 3.22.1
 
 ## Build & Install
-If your system is Ubuntu20.04, Ubuntu22.04 or Ubuntu24.04, you can run the following command to install elite-cs-series-sdk:
+If your system is Ubuntu, you can run the following command to install elite-cs-series-sdk:
 ```bash
 sudo add-apt-repository ppa:elite-robots/cs-robot-series-sdk
 sudo apt update

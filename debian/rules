@@ -3,6 +3,22 @@
 # output every command that modifies files on the build system.
 export DH_VERBOSE = 1
 
+DEB_DISTRIBUTION := $(shell dpkg-parsechangelog -S Distribution)
+CMAKE_CXX_STANDARD := 17
+ELITE_LINK_BOOST_SYSTEM := OFF
+ELITE_BOOST_DEPENDS :=
+
+ifeq ($(DEB_DISTRIBUTION),xenial)
+CMAKE_CXX_STANDARD := 14
+ELITE_LINK_BOOST_SYSTEM := ON
+ELITE_BOOST_DEPENDS := , libboost-dev, libboost-system-dev
+endif
+
+ifeq ($(DEB_DISTRIBUTION),bionic)
+ELITE_LINK_BOOST_SYSTEM := ON
+ELITE_BOOST_DEPENDS := , libboost-dev, libboost-system-dev
+endif
+
 
 # see FEATURE AREAS in dpkg-buildflags(1)
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
@@ -22,10 +38,15 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all
 # This is example for Cmake (See https://bugs.debian.org/641051 )
 override_dh_auto_configure:
 	dh_auto_configure -- \
-	-DCMAKE_CXX_STANDARD=17
+	-DCMAKE_CXX_STANDARD=$(CMAKE_CXX_STANDARD) \
+	-DELITE_LINK_BOOST_SYSTEM=$(ELITE_LINK_BOOST_SYSTEM)
 
 override_dh_clean:
 	dh_clean
+
+override_dh_gencontrol:
+	echo "elite:BoostDepends=$(ELITE_BOOST_DEPENDS)" >> debian/elite-cs-series-sdk.substvars
+	dh_gencontrol
 
 override_dh_shlibdeps:
 	LD_LIBRARY_PATH=$(DESTDIR)/usr/lib/$(DEB_TARGET_MULTIARCH):$$LD_LIBRARY_PATH dh_shlibdeps -l$(DESTDIR)/usr/lib/$(DEB_TARGET_MULTIARCH) -a

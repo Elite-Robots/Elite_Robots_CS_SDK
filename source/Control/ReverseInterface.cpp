@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2025, Elite Robots.
 #include "ReverseInterface.hpp"
+#include <cmath>
 #include "ControlCommon.hpp"
 #include "EliteException.hpp"
 #include "Log.hpp"
@@ -24,7 +25,7 @@ bool ReverseInterface::writeJointCommand(const vector6d_t* pos, ControlMode mode
     data[REVERSE_DATA_SIZE - 1] = htonl((int)mode);
     if (pos) {
         for (size_t i = 0; i < 6; i++) {
-            int32_t rounded_value = static_cast<int32_t>(::round(position[i] * CONTROL::POS_ZOOM_RATIO));
+            int32_t rounded_value = static_cast<int32_t>(std::round(position[i] * CONTROL::POS_ZOOM_RATIO));
             data[i + 1] = ::htonl(rounded_value);
         }
     }

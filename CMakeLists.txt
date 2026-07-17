@@ -1,12 +1,13 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.5)
 
-project(elite_cs_series_sdk VERSION 1.4.0)
+project(elite_cs_series_sdk VERSION 1.4.7)
 
 option(ELITE_COMPILE_TESTS "Compile tests" OFF)
 option(ELITE_COMPILE_DOC "Compile documentation" OFF)
 option(ELITE_COMPILE_EXAMPLES "Compile examples" OFF)
 option(ELITE_COMPILE_KIN_PLUGIN "Compile kinematics plugin" OFF)
 option(ELITE_COMPILE_POSE_ALG_PLUGIN "Compile pose algebra plugin" OFF)
+option(ELITE_LINK_BOOST_SYSTEM "Link Boost.System for Boost.Asio versions that are not header-only" OFF)
 
 include(cmake/utils.cmake)
 
@@ -25,7 +26,15 @@ else()
 endif()
 
 
-find_package(Boost REQUIRED)
+if(ELITE_LINK_BOOST_SYSTEM)
+    find_package(Boost REQUIRED COMPONENTS system)
+    set(ELITE_BOOST_LIBRARIES Boost::system)
+    set(ELITE_BOOST_FIND_COMPONENTS system)
+else()
+    find_package(Boost REQUIRED)
+    set(ELITE_BOOST_LIBRARIES)
+    set(ELITE_BOOST_FIND_COMPONENTS)
+endif()
 find_package(libssh)
 if(libssh_FOUND)
     set(THIRDPARTY_LIB ${THIRDPARTY_LIB} ssh)
@@ -109,6 +118,7 @@ set(
     Common/EndianUtils.hpp
     Common/StringUtils.hpp
     Common/SharedLibrary.hpp
+    Common/BoostAsioCompat.hpp
     KinematicsBase/KinematicsBase.hpp
     PoseAlgebraBase/PoseAlgebraBase.hpp
     ClassLoader/ClassRegistry.hpp
@@ -161,8 +171,10 @@ set_target_properties(
 )
 target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_LIB_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_LIB_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME}_SHARED PRIVATE Boost::boost ${THIRDPARTY_LIB})
-target_link_libraries(${PROJECT_NAME}_STATIC PRIVATE Boost::boost ${THIRDPARTY_LIB})
+target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${Boost_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_BOOST_LIBRARIES} ${THIRDPARTY_LIB})
+target_link_libraries(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_BOOST_LIBRARIES} ${THIRDPARTY_LIB})
 
 foreach(header ${ELITE_HEADER_FILES})
     get_filename_component(header_name ${header} NAME)
@@ -212,7 +224,13 @@ option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
 
 if((CMAKE_SYSTEM_NAME STREQUAL "Linux") AND ELITE_INSTALL)
     include(GNUInstallDirs)
-    install(TARGETS ${PROJECT_NAME}_SHARED ${PROJECT_NAME}_STATIC EXPORT ${PROJECT_NAME}Targets LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(
+        TARGETS ${PROJECT_NAME}_SHARED ${PROJECT_NAME}_STATIC
+        EXPORT ${PROJECT_NAME}Targets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    )
     install(DIRECTORY ${PROJECT_BINARY_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     install(DIRECTORY ${PROJECT_SOURCE_DIR}/source/resources/ DESTINATION share/Elite)
     include(CMakePackageConfigHelpers)
@@ -254,6 +272,7 @@ message(STATUS "CMAKE_CXX_FLAGS:                    ${CMAKE_CXX_FLAGS}")
 message(STATUS "CMAKE_INSTALL_INCLUDEDIR:           ${CMAKE_INSTALL_INCLUDEDIR}")
 message(STATUS "CMAKE_INSTALL_LIBDIR:               ${CMAKE_INSTALL_LIBDIR}")
 message(STATUS "THIRDPARTY_LIB                      ${THIRDPARTY_LIB}")
+message(STATUS "ELITE_LINK_BOOST_SYSTEM             ${ELITE_LINK_BOOST_SYSTEM}")
 message(STATUS "ELITE_COMPILE_TESTS                 ${ELITE_COMPILE_TESTS}")
 message(STATUS "ELITE_COMPILE_DOC                   ${ELITE_COMPILE_DOC}")
 message(STATUS "ELITE_COMPILE_EXAMPLES              ${ELITE_COMPILE_EXAMPLES}")

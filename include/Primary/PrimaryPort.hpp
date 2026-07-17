@@ -9,8 +9,8 @@
 #include "DataType.hpp"
 #include "PrimaryPackage.hpp"
 #include "RobotException.hpp"
+#include <Common/BoostAsioCompat.hpp>
 
-#include <boost/asio.hpp>
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -32,7 +32,7 @@ class PrimaryPort {
     static constexpr int ROBOT_EXCEPTION_MSG_TYPE = 20;
 
     std::mutex socket_mutex_;
-    boost::asio::io_context io_context_;
+    BoostIoContext io_context_;
     std::unique_ptr<boost::asio::ip::tcp::socket> socket_ptr_;
 
     std::function<void(RobotExceptionSharedPtr)> robot_exception_cb_;

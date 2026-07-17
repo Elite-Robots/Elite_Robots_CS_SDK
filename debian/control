@@ -3,8 +3,8 @@ Section: libs
 Priority: optional
 Maintainer: Elite Robots <elite@elibot.cn>
 Build-Depends: 
-  debhelper-compat (= 9), 
-  cmake(>= 3.16),
+  debhelper (>= 9), 
+  cmake(>= 3.5),
   libboost-all-dev(>=1.58),
   libssh-dev
 Standards-Version: 4.6.0
@@ -18,5 +18,5 @@ Architecture: amd64 arm64
 Depends: 
   ${shlibs:Depends},
   ${misc:Depends},
-  libssh-dev
+  libssh-dev${elite:BoostDepends}
 Description: Elite Robots CS Series SDK.

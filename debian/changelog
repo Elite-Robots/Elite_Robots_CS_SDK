@@ -1,3 +1,213 @@
+elite-cs-series-sdk (1.4.7-focal-multiarch-1) focal; urgency=medium
+
+  * Focal upload for SDK version 1.4.7.
+  * Re-upload.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-resolute-multiarch) resolute; urgency=medium
+
+  * Resolute upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-noble-multiarch) noble; urgency=medium
+
+  * Noble upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-jammy-multiarch) jammy; urgency=medium
+
+  * Jammy upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-focal-multiarch) focal; urgency=medium
+
+  * Focal upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-bionic-multiarch) bionic; urgency=medium
+
+  * Bionic upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-noble-multiarch) noble; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-jammy-multiarch) jammy; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-focal-multiarch) focal; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-bionic-multiarch) bionic; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-xenial-multiarch) xenial; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 16:00:00 +0800
+
+elite-cs-series-sdk (1.4.6-resolute-multiarch) resolute; urgency=medium
+
+  * Fix GCC 15 build failure by using std::round from <cmath>.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-resolute-multiarch) resolute; urgency=medium
+
+  * Resolute upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-focal-multiarch) focal; urgency=medium
+
+  * Focal upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-noble-multiarch) noble; urgency=medium
+
+  * Noble upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-jammy-multiarch) jammy; urgency=medium
+
+  * Jammy upload.
+  * Keep Jammy builds on C++17 without a Boost runtime dependency.
+  * Do not require Boost from the exported CMake package when Boost.System is
+    not linked.
+
+ -- Elite Robots <elite@elibot.cn>  Wed, 15 Jul 2026 09:30:00 +0800
+
+elite-cs-series-sdk (1.4.5-bionic-multiarch) bionic; urgency=medium
+
+  * Bionic upload.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 21:20:00 +0800
+
+elite-cs-series-sdk (1.4.5-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Fix find_package error.
+  * Auto install boost.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 17:34:00 +0800
+
+elite-cs-series-sdk (1.4.4-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 17:34:00 +0800
+
+elite-cs-series-sdk (1.4.3-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 17:34:00 +0800
+
+elite-cs-series-sdk (1.4.2-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 16:34:00 +0800
+
+elite-cs-series-sdk (1.4.1-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 16:20:00 +0800
+
+elite-cs-series-sdk (1.4.0-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 13:22:54 +0800
+
+elite-cs-series-sdk (1.4.0-focal-multiarch) focal; urgency=medium
+
+  * Focal upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 13:22:54 +0800
+
+elite-cs-series-sdk (1.4.0-noble-multiarch) noble; urgency=medium
+
+  * Noble upload.
+  * Same as 1.4.0-jammy-multiarch.
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 13:22:54 +0800
+
+elite-cs-series-sdk (1.4.0-jammy-multiarch) jammy; urgency=medium
+
+  [ Added ]
+  * Added the `ClassLoader` module, registration macros, and documentation to support plug-in functionality.
+  * Added a kinematics plug-in; enable the `ELITE_COMPILE_KIN_PLUGIN` option during compilation to build this module.
+  * Added a pose geometry plug-in; enable the `ELITE_COMPILE_POSE_ALG_PLUGIN` option during compilation to build this module.
+  * Add configurable servo extrapolation and hold-lock parameters (`servoj_extrapolate_max_time`, `servoj_decelerate_time`, `servoj_hold_velocity_threshold`, `servoj_hold_stable_time`, and the corrected `servoj_lookahead_time`) to `EliteDriverConfig` along with the updated script integration and tuning guidance.
+  * Add `EliteDriverReconstructTest` for testing struct reconstruction scenarios.
+  * Add `TcpServerPortOccupyTest` for testing TCP server port occupation handling.
+  * Added an overload of `EliteDriver::writeTrajectoryPoint()` to support setting velocity and acceleration parameters.
+  * Added the `EliteDriver::primaryPort()` interface.
+  * Added the following interfaces to `PrimaryPortInterface`:
+    * `powerOn()`
+    * `powerOff()`
+    * `brakeRelease()`
+    * `pauseProgram()`
+    * `stopProgram()`
+    * `unlockProtectiveStop()`
+    * `safetySystemRestart()`
+    * `setSpeedScaling()`
+
+  [ Changed ]
+  * Document the plugin build option, its dependency requirements (`orocos-kdl`, `Eigen3`, etc.), and the updated build status messages so users know how to enable the kinematics plugin.
+  * Update `external_control.script` to consume the new extrapolation/hold-lock parameters, add helper functions for joint stability checks, and keep the script synchronized with the driver configuration for improved robustness.
+  * Move struct reconstruct scenario to test suite for better coverage.
+
+  [ Fixed ]
+  * Fixed the issue where, on some compilers, joint angles in `EliteDriver::writeTrajectoryPoint()` and `EliteDriver::writeJointServoj()` would become 0 when they were negative.
+  * Harden TCP server port reuse coverage: add bind retry mechanism when TCP port is in use (retry up to 30 times with 10ms interval).
+
+ -- Elite Robots <elite@elibot.cn>  Tue, 14 Jul 2026 10:35:26 +0800
+
 elite-cs-series-sdk (1.3.0-focal-multiarch) focal; urgency=medium
 
   * Focal upload.

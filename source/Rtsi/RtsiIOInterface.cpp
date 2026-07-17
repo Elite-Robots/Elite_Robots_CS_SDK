@@ -260,7 +260,7 @@ vector3d_t RtsiIOInterface::getPayloadCog() {
 }
 
 vector6d_t RtsiIOInterface::getTargetJointPositions() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("target_joint_positions", result);
     return result;
 }
@@ -272,85 +272,85 @@ uint32_t RtsiIOInterface::getScriptControlLine() {
 }
 
 vector6d_t RtsiIOInterface::getTargetJointVelocity() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("target_joint_speeds", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualJointPositions() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_joint_positions", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualJointTorques() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_joint_torques", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualJointVelocity() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_joint_speeds", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualJointCurrent() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_joint_current", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualJointTemperatures() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("joint_temperatures", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getAcutalTCPPose() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_TCP_pose", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualTCPPose() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_TCP_pose", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getAcutalTCPVelocity() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_TCP_speed", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualTCPVelocity() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_TCP_speed", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getAcutalTCPForce() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_TCP_force", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getActualTCPForce() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("actual_TCP_force", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getTargetTCPPose() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("target_TCP_pose", result);
     return result;
 }
 
 vector6d_t RtsiIOInterface::getTargetTCPVelocity() {
-    vector6d_t result{0};
+    vector6d_t result{{0}};
     getRecipeValue("target_TCP_speed", result);
     return result;
 }
@@ -418,13 +418,13 @@ TaskStatus RtsiIOInterface::getRuntimeState() {
 }
 
 vector3d_t RtsiIOInterface::getElbowPosition() {
-    vector3d_t result{0};
+    vector3d_t result{{0}};
     getRecipeValue("elbow_position", result);
     return result;
 }
 
 vector3d_t RtsiIOInterface::getElbowVelocity() {
-    vector3d_t result{0};
+    vector3d_t result{{0}};
     getRecipeValue("elbow_velocity", result);
     return result;
 }

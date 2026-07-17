@@ -2,6 +2,7 @@
 // Copyright (c) 2025, Elite Robots.
 #include "TrajectoryInterface.hpp"
 #include <boost/asio.hpp>
+#include <cmath>
 #include <cstring>
 #include "ControlCommon.hpp"
 #include "EliteException.hpp"
@@ -59,13 +60,13 @@ bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, floa
                                                float speed, float acceleration) {
     int32_t buffer[TRAJECTORY_MESSAGE_LEN] = {0};
     for (size_t i = 0; i < 6; i++) {
-        int32_t rounded_pos = static_cast<int32_t>(::round(positions[i] * CONTROL::POS_ZOOM_RATIO));
+        int32_t rounded_pos = static_cast<int32_t>(std::round(positions[i] * CONTROL::POS_ZOOM_RATIO));
         buffer[i] = ::htonl(rounded_pos);
     }
-    buffer[6] = htonl(round(speed * CONTROL::COMMON_ZOOM_RATIO));
-    buffer[7] = htonl(round(acceleration * CONTROL::COMMON_ZOOM_RATIO));
-    buffer[18] = htonl(round(time * CONTROL::TIME_ZOOM_RATIO));
-    buffer[19] = htonl(round(blend_radius * CONTROL::POS_ZOOM_RATIO));
+    buffer[6] = htonl(static_cast<int32_t>(std::round(speed * CONTROL::COMMON_ZOOM_RATIO)));
+    buffer[7] = htonl(static_cast<int32_t>(std::round(acceleration * CONTROL::COMMON_ZOOM_RATIO)));
+    buffer[18] = htonl(static_cast<int32_t>(std::round(time * CONTROL::TIME_ZOOM_RATIO)));
+    buffer[19] = htonl(static_cast<int32_t>(std::round(blend_radius * CONTROL::POS_ZOOM_RATIO)));
     if (cartesian) {
         buffer[20] = htonl((int)TrajectoryMotionType::CARTESIAN);
     } else {
