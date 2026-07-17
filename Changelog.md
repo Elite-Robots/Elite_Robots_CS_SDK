@@ -1,6 +1,14 @@
 # Changelog for Elite Robots CS SDK
 
-## [v1.4.0] - 2026-07-14
+## [v1.4.6] - 2026-07-17
+
+### Changed
+- Bumped the Debian package version to 1.4.6 for multi-distribution builds, including Ubuntu 16.04 and 18.04 compatibility.
+
+### Fixed
+- Fixed GCC 15 build failure by using `std::round` from `<cmath>`.
+
+## [v1.4.0] - Unreleased
 
 ### Added
 - Added the `ClassLoader` module, registration macros, and documentation to support plug-in functionality.
