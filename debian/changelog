@@ -1,3 +1,46 @@
+elite-cs-series-sdk (1.4.7-focal-multiarch-1) focal; urgency=medium
+
+  * Focal upload for SDK version 1.4.7.
+  * Re-upload.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-resolute-multiarch) resolute; urgency=medium
+
+  * Resolute upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-noble-multiarch) noble; urgency=medium
+
+  * Noble upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-jammy-multiarch) jammy; urgency=medium
+
+  * Jammy upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-focal-multiarch) focal; urgency=medium
+
+  * Focal upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-bionic-multiarch) bionic; urgency=medium
+
+  * Bionic upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
+elite-cs-series-sdk (1.4.7-xenial-multiarch) xenial; urgency=medium
+
+  * Xenial upload for SDK version 1.4.7.
+
+ -- Elite Robots <elite@elibot.cn>  Fri, 17 Jul 2026 10:00:00 +0800
+
 elite-cs-series-sdk (1.4.6-noble-multiarch) noble; urgency=medium
 
   * Fix GCC 15 build failure by using std::round from <cmath>.

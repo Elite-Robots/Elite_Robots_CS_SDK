@@ -1,6 +1,11 @@
 # Changelog for Elite Robots CS SDK
 
-## [v1.4.6] - 2026-07-17
+## [v1.4.7] - 2026-07-17
+
+### 更改
+- 将 SDK 版本提升至 1.4.7，并新增 Xenial Debian 软件包发布记录。
+
+## [v1.4.6] - Unreleased
 
 ### 更改
 - 将 Debian 软件包版本提升至 1.4.6，用于多发行版构建，并兼容 Ubuntu 16.04 与 18.04。
