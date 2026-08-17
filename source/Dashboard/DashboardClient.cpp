@@ -176,6 +176,30 @@ void DashboardClient::shutdown() {
     impl_->disconnect();
 }
 
+bool DashboardClient::remoteControl() {
+    std::string response = sendAndRequest("remoteControl -status\n");
+    return response == "true\r\n";
+}
+
+bool DashboardClient::remoteControl(bool enable) {
+    std::string send_command = enable ? "remoteControl -on\n" : "remoteControl -off\n";
+    std::string expected = enable ? "Remote[- ]control mode enabled\\.\r\n" : "Remote[- ]control mode disabled\\.\r\n";
+    std::string response = sendAndRequest(send_command, expected);
+    return !response.empty();
+}
+
+RemoteControlMode DashboardClient::remoteControlMode() {
+    std::string response = sendAndRequest("remoteControl -s\n");
+    if (response == "REMOTE\r\n") {
+        return RemoteControlMode::REMOTE;
+    } else if (response == "LOCAL\r\n") {
+        return RemoteControlMode::LOCAL;
+    } else if (response == "NONE\r\n") {
+        return RemoteControlMode::NONE;
+    }
+    return RemoteControlMode::UNKNOWN;
+}
+
 int DashboardClient::speedScaling() {
     std::string request = sendAndRequest("status\n", "Target Speed Fraction:.*");
     std::size_t pos = request.find(": ");

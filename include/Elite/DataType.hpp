@@ -102,6 +102,8 @@ enum class ToolDigitalOutputMode : uint8_t {
 
 enum class TaskStatus { UNKNOWN, PLAYING, PAUSED, STOPPED };
 
+enum class RemoteControlMode { UNKNOWN, NONE, LOCAL, REMOTE };
+
 enum class TrajectoryMotionResult : int {
     /// Successful execution
     SUCCESS = 0,

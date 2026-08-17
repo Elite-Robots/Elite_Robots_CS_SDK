@@ -70,4 +70,26 @@ bool ScriptCommandInterface::endForceMode() {
     return write(buffer, sizeof(buffer)) > 0;
 }
 
+bool ScriptCommandInterface::setCollisionDetectEnabled(bool enable) {
+    int32_t buffer[SCRIPT_COMMAND_DATA_SIZE] = {0};
+    buffer[0] = htonl(static_cast<int32_t>(Cmd::SET_COLLISION_DETECT_ENABLED));
+    buffer[1] = htonl(enable ? 1 : 0);
+    return write(buffer, sizeof(buffer)) > 0;
+}
+
+bool ScriptCommandInterface::setCollisionSensitivity(int32_t ratio) {
+    int32_t buffer[SCRIPT_COMMAND_DATA_SIZE] = {0};
+    buffer[0] = htonl(static_cast<int32_t>(Cmd::SET_COLLISION_SENSITIVITY));
+    buffer[1] = htonl(ratio);
+    return write(buffer, sizeof(buffer)) > 0;
+}
+
+bool ScriptCommandInterface::setMountingPlane(double z_rotation, double tilt) {
+    int32_t buffer[SCRIPT_COMMAND_DATA_SIZE] = {0};
+    buffer[0] = htonl(static_cast<int32_t>(Cmd::SET_MOUNTING_PLANE));
+    buffer[1] = htonl(static_cast<int32_t>(z_rotation * CONTROL::COMMON_ZOOM_RATIO));
+    buffer[2] = htonl(static_cast<int32_t>(tilt * CONTROL::COMMON_ZOOM_RATIO));
+    return write(buffer, sizeof(buffer)) > 0;
+}
+
 }  // namespace ELITE

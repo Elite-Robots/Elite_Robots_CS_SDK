@@ -345,6 +345,18 @@ bool EliteDriver::startForceMode(const vector6d_t& reference_frame, const vector
 
 bool EliteDriver::endForceMode() { return impl_->script_command_server_->endForceMode(); }
 
+bool EliteDriver::setCollisionDetectEnabled(bool enable) {
+    return impl_->script_command_server_->setCollisionDetectEnabled(enable);
+}
+
+bool EliteDriver::setCollisionSensitivity(int32_t ratio) {
+    return impl_->script_command_server_->setCollisionSensitivity(ratio);
+}
+
+bool EliteDriver::setMountingPlane(double z_rotation, double tilt) {
+    return impl_->script_command_server_->setMountingPlane(z_rotation, tilt);
+}
+
 bool EliteDriver::sendScript(const std::string& script) {
     if (!impl_->primary_port_) {
         ELITE_LOG_ERROR("Not connect to robot primary port");

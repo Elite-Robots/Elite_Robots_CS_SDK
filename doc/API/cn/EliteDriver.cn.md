@@ -287,6 +287,54 @@ bool endForceMode()
 
 ---
 
+### ***打开或关闭碰撞检测***
+```cpp
+bool setCollisionDetectEnabled(bool enable)
+```
+- ***功能***
+
+    通过外部控制脚本命令 socket 打开或关闭碰撞检测。
+
+- ***参数***
+    - enable：true 表示打开碰撞检测，false 表示关闭碰撞检测。
+
+- ***返回值***：指令发送成功返回 true，失败返回 false。
+
+---
+
+### ***设置碰撞检测灵敏度***
+```cpp
+bool setCollisionSensitivity(int32_t ratio)
+```
+- ***功能***
+
+    设置碰撞检测灵敏度。
+
+- ***参数***
+    - ratio：碰撞检测灵敏度，单位为百分比，有效范围为 [10, 100]。
+
+- ***返回值***：指令发送成功返回 true，失败返回 false。
+
+---
+
+### ***设置机器人安装平面***
+```cpp
+bool setMountingPlane(double z_rotation, double tilt = 0.0)
+```
+- ***功能***
+
+    通过动态调整重力方向设置机器人安装平面。参数含义对应示教器安装平面的显示值。
+
+- ***参数***
+    - z_rotation：绕机器人基坐标系 Z 轴的旋转角度，单位为 rad。
+    - tilt：安装平面倾斜角度，单位为 rad。
+
+- ***注意***：重力向量按 `[g * sin(tilt) * sin(z_rotation), -g * sin(tilt) * cos(z_rotation), g * cos(tilt)]` 计算，其中 `g = 9.82`。
+
+- ***返回值***：指令发送成功返回 true，失败返回 false。
+
+---
+
 ## 其余
 
 ### ***停止外部控制***

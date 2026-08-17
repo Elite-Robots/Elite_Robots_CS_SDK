@@ -338,6 +338,34 @@ class EliteDriver {
     ELITE_EXPORT bool endForceMode();
 
     /**
+     * @brief Enable or disable collision detection.
+     *
+     * @param enable true to enable, false to disable
+     * @return true success
+     * @return false fail
+     */
+    ELITE_EXPORT bool setCollisionDetectEnabled(bool enable);
+
+    /**
+     * @brief Set collision detection sensitivity.
+     *
+     * @param ratio Sensitivity ratio in percent. Valid range is [10, 100].
+     * @return true success
+     * @return false fail
+     */
+    ELITE_EXPORT bool setCollisionSensitivity(int32_t ratio);
+
+    /**
+     * @brief Set robot mounting plane by dynamically adjusting the gravity direction.
+     *
+     * @param z_rotation Rotation angle around the robot base Z axis, in radians.
+     * @param tilt Mounting plane tilt angle, in radians.
+     * @return true success
+     * @return false fail
+     */
+    ELITE_EXPORT bool setMountingPlane(double z_rotation, double tilt = 0.0);
+
+    /**
      * @brief Send a custom script.
      *
      * @param script Custom script

@@ -160,6 +160,30 @@ class DashboardClient {
     ELITE_EXPORT void shutdown();
 
     /**
+     * @brief Get whether remote control mode is enabled.
+     *
+     * @return true enabled
+     * @return false disabled
+     */
+    ELITE_EXPORT bool remoteControl();
+
+    /**
+     * @brief Enable or disable remote control mode.
+     *
+     * @param enable true to enable, false to disable
+     * @return true success
+     * @return false fail
+     */
+    ELITE_EXPORT bool remoteControl(bool enable);
+
+    /**
+     * @brief Get the current control mode.
+     *
+     * @return RemoteControlMode
+     */
+    ELITE_EXPORT RemoteControlMode remoteControlMode();
+
+    /**
      * @brief Gets the robot speed scaling percentage
      *
      * @return int Robot speed scaling percentage
