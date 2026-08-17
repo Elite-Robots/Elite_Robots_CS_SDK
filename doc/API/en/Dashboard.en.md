@@ -158,6 +158,38 @@ Shuts down the robot and disconnects the connection.
 
 ---
 
+### Get the Remote Control Status
+```cpp
+bool remoteControl()
+```
+- ***Function***
+Gets whether remote control mode is enabled.
+- ***Return Value***: Returns true if remote control mode is enabled, and false otherwise.
+
+---
+
+### Set the Remote Control Status
+```cpp
+bool remoteControl(bool enable)
+```
+- ***Function***
+Enables or disables remote control mode.
+- ***Parameters***
+    - enable: True to enable remote control mode, false to disable it.
+- ***Return Value***: Returns true if the operation is successful, and false if it fails.
+
+---
+
+### Get the Control Mode
+```cpp
+RemoteControlMode remoteControlMode()
+```
+- ***Function***
+Gets the current control mode.
+- ***Return Value***: Returns `RemoteControlMode::REMOTE`, `RemoteControlMode::LOCAL`, `RemoteControlMode::NONE`, or `RemoteControlMode::UNKNOWN`.
+
+---
+
 ### Get the Speed Scaling
 ```cpp
 int speedScaling()

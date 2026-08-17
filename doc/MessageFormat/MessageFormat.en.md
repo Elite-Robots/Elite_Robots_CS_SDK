@@ -50,6 +50,19 @@ Message length: 26 int data.
 > *1: Corresponds to the `ScriptCommandInterface::Cmd` enumeration in the code `ScriptCommandInterface.hpp`.
 > *2: Depending on the instruction, the number of useful data varies. Unused data can be set to 0.
 
+Common command payloads:
+
+| Command | Value | Data |
+| ---- | ---- | ---- |
+| `ZERO_FTSENSOR` | 0 | No payload |
+| `SET_PAYLOAD` | 1 | Data 1: mass, Data 2-4: center of gravity, amplified by 1,000,000 |
+| `SET_TOOL_VOLTAGE` | 2 | Data 1: tool voltage, amplified by 1,000,000 |
+| `START_FORCE_MODE` | 3 | Data 1-6: task frame, Data 7-12: selection vector, Data 13-18: wrench, Data 19: force mode, Data 20-25: limits |
+| `END_FORCE_MODE` | 4 | No payload |
+| `SET_COLLISION_DETECT_ENABLED` | 9 | Data 1: 1 means enabled, 0 means disabled |
+| `SET_COLLISION_SENSITIVITY` | 10 | Data 1: sensitivity ratio in percent, range [10, 100] |
+| `SET_MOUNTING_PLANE` | 11 | Data 1: Z-axis rotation angle in radians, Data 2: mounting plane tilt angle in radians, amplified by 1,000,000 |
+
 ## 3. TrajectoryInterface
 
 ### 3.1 Messages Sent to the Control Script

@@ -47,6 +47,19 @@
 > *1：对应代码`ScriptCommandInterface.hpp`中的`ScriptCommandInterface::Cmd`枚举。
 > *2：依据指令的不同，有用的数据个数也不同，没用到的数据可以设置为0。
 
+常用命令负载如下：
+
+| 命令 | 值 | 数据 |
+| --- | --- | --- |
+| `ZERO_FTSENSOR` | 0 | 无负载 |
+| `SET_PAYLOAD` | 1 | 数据 1：质量，数据 2~4：重心坐标，放大 1000000 倍 |
+| `SET_TOOL_VOLTAGE` | 2 | 数据 1：工具电压，放大 1000000 倍 |
+| `START_FORCE_MODE` | 3 | 数据 1~6：任务坐标系，数据 7~12：选择向量，数据 13~18：力/力矩，数据 19：力控模式，数据 20~25：限制参数 |
+| `END_FORCE_MODE` | 4 | 无负载 |
+| `SET_COLLISION_DETECT_ENABLED` | 9 | 数据 1：1 表示打开，0 表示关闭 |
+| `SET_COLLISION_SENSITIVITY` | 10 | 数据 1：碰撞检测灵敏度百分比，范围 [10, 100] |
+| `SET_MOUNTING_PLANE` | 11 | 数据 1：绕 Z 轴旋转角度，数据 2：安装平面倾斜角度，单位 rad，放大 1000000 倍 |
+
 ## 3. TrajectoryInterface
 
 ### 3.1 发送给控制脚本的报文

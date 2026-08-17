@@ -243,6 +243,44 @@ Disables the force control mode.
 
 ---
 
+### ***Enable or Disable Collision Detection***
+```cpp
+bool setCollisionDetectEnabled(bool enable)
+```
+- ***Function***
+Enables or disables collision detection through the external control script command socket.
+- ***Parameters***
+    - enable: True to enable collision detection, false to disable it.
+- ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
+
+---
+
+### ***Set Collision Detection Sensitivity***
+```cpp
+bool setCollisionSensitivity(int32_t ratio)
+```
+- ***Function***
+Sets the collision detection sensitivity.
+- ***Parameters***
+    - ratio: Sensitivity ratio in percent. The valid range is [10, 100].
+- ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
+
+---
+
+### ***Set the Robot Mounting Plane***
+```cpp
+bool setMountingPlane(double z_rotation, double tilt = 0.0)
+```
+- ***Function***
+Sets the robot mounting plane by dynamically adjusting the gravity direction. The parameters correspond to the teach pendant mounting plane values.
+- ***Parameters***
+    - z_rotation: Rotation angle around the robot base Z axis, in radians.
+    - tilt: Mounting plane tilt angle, in radians.
+- ***Note***: The gravity vector is calculated as `[g * sin(tilt) * sin(z_rotation), -g * sin(tilt) * cos(z_rotation), g * cos(tilt)]`, where `g = 9.82`.
+- ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
+
+---
+
 ## Others
 
 ### ***Stop External Control***

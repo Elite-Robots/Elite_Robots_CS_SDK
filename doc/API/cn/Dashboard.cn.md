@@ -191,6 +191,45 @@ void shutdown()
 
 ---
 
+### 获取远程控制模式状态
+```cpp
+bool remoteControl()
+```
+- ***功能***
+
+    获取远程控制模式是否已开启
+
+- ***返回值***：远程控制模式已开启返回 true，否则返回 false
+
+---
+
+### 设置远程控制模式状态
+```cpp
+bool remoteControl(bool enable)
+```
+- ***功能***
+
+    打开或关闭远程控制模式
+
+- ***参数***
+    - enable：true 表示打开远程控制模式，false 表示关闭远程控制模式
+
+- ***返回值***：操作成功返回 true，失败返回 false
+
+---
+
+### 获取当前控制模式
+```cpp
+RemoteControlMode remoteControlMode()
+```
+- ***功能***
+
+    获取当前控制模式
+
+- ***返回值***：返回 `RemoteControlMode::REMOTE`、`RemoteControlMode::LOCAL`、`RemoteControlMode::NONE` 或 `RemoteControlMode::UNKNOWN`
+
+---
+
 ### 获取速度比例
 ```cpp
 int speedScaling()

@@ -12,6 +12,7 @@
 #include "TcpServer.hpp"
 
 #include <boost/asio.hpp>
+#include <cstdint>
 #include <memory>
 
 namespace ELITE {
@@ -24,6 +25,13 @@ class ScriptCommandInterface : public ReversePort {
         SET_TOOL_VOLTAGE = 2,
         START_FORCE_MODE = 3,
         END_FORCE_MODE = 4,
+        START_TOOL_COMMUNICATION = 5,
+        END_TOOL_COMMUNICATION = 6,
+        START_BOARD_RS485 = 7,
+        END_BOARD_RS485 = 8,
+        SET_COLLISION_DETECT_ENABLED = 9,
+        SET_COLLISION_SENSITIVITY = 10,
+        SET_MOUNTING_PLANE = 11,
     };
 
     enum class SerialResult {
@@ -108,6 +116,34 @@ class ScriptCommandInterface : public ReversePort {
      * @return false fail
      */
     bool endForceMode();
+
+    /**
+     * @brief Enable or disable collision detection.
+     *
+     * @param enable true to enable, false to disable
+     * @return true success
+     * @return false fail
+     */
+    bool setCollisionDetectEnabled(bool enable);
+
+    /**
+     * @brief Set collision detection sensitivity.
+     *
+     * @param ratio Sensitivity ratio in percent. Valid range is [10, 100].
+     * @return true success
+     * @return false fail
+     */
+    bool setCollisionSensitivity(int32_t ratio);
+
+    /**
+     * @brief Set robot mounting plane by dynamically adjusting the gravity direction.
+     *
+     * @param z_rotation Rotation angle around the robot base Z axis, in radians.
+     * @param tilt Mounting plane tilt angle, in radians.
+     * @return true success
+     * @return false fail
+     */
+    bool setMountingPlane(double z_rotation, double tilt = 0.0);
 };
 
 }  // namespace ELITE
