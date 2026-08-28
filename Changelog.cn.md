@@ -1,5 +1,15 @@
 # Changelog for Elite Robots CS SDK
 
+## [v1.5.0] - 2026-08-28
+
+### 新增
+- 新增 `DashboardClient::remoteControl()` 重载，用于查询、打开和关闭远程控制模式；同时新增 `DashboardClient::remoteControlMode()` 和 `RemoteControlMode` 枚举，用于查询当前控制模式。
+- 为 `EliteDriver` 和 `ScriptCommandInterface` 新增打开或关闭碰撞检测、设置碰撞检测灵敏度及配置机器人安装平面的接口，并同步更新外部控制脚本协议及相关文档。
+
+### 更改
+- 通过 ament 软件包配置导出 SDK 头文件目录、共享库和 Boost 依赖，使下游 ROS 2 软件包可以使用 `ament_target_dependencies()` 引用 SDK。
+- 在 Debian/PPA 构建中启用运动学和位姿运算插件，并兼容 Ubuntu 16.04 提供的 CMake 与 Eigen 版本。
+
 ## [v1.4.7] - 2026-07-17
 
 ### 更改

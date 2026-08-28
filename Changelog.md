@@ -1,5 +1,15 @@
 # Changelog for Elite Robots CS SDK
 
+## [v1.5.0] - 2026-08-28
+
+### Added
+- Added `DashboardClient::remoteControl()` overloads to query, enable, and disable remote control mode, plus `DashboardClient::remoteControlMode()` and the `RemoteControlMode` enum to query the current control mode.
+- Added `EliteDriver` and `ScriptCommandInterface` APIs to enable or disable collision detection, set collision sensitivity, and configure the robot mounting plane; updated the external control script protocol and related documentation accordingly.
+
+### Changed
+- Exported the SDK include directory, shared library, and Boost dependency through the ament package configuration so downstream ROS 2 packages can consume the SDK with `ament_target_dependencies()`.
+- Enabled the kinematics and pose algebra plug-ins in Debian/PPA builds, including compatibility with the CMake and Eigen versions provided by Ubuntu 16.04.
+
 ## [v1.4.7] - 2026-07-17
 
 ### Changed

@@ -6,6 +6,8 @@ Build-Depends:
   debhelper (>= 9), 
   cmake(>= 3.5),
   libboost-all-dev(>=1.58),
+  libeigen3-dev,
+  liborocos-kdl-dev,
   libssh-dev
 Standards-Version: 4.6.0
 Homepage: https://www.eliterobots.com/

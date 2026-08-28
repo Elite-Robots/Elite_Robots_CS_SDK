@@ -27,8 +27,12 @@ namespace ELITE {
  */
 struct PoseMatrix {
     /// Raw matrix storage in row-major indexing [row][col].
-    std::array<std::array<double, 4>, 4> data{
-        {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}, {0.0, 0.0, 0.0, 1.0}}};
+    std::array<std::array<double, 4>, 4> data{{
+        {{1.0, 0.0, 0.0, 0.0}},
+        {{0.0, 1.0, 0.0, 0.0}},
+        {{0.0, 0.0, 1.0, 0.0}},
+        {{0.0, 0.0, 0.0, 1.0}},
+    }};
 };
 
 /**

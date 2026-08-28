@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(elite_cs_series_sdk VERSION 1.4.7)
+project(elite_cs_series_sdk VERSION 1.5.0)
 
 option(ELITE_COMPILE_TESTS "Compile tests" OFF)
 option(ELITE_COMPILE_DOC "Compile documentation" OFF)
@@ -35,10 +35,13 @@ else()
     set(ELITE_BOOST_LIBRARIES)
     set(ELITE_BOOST_FIND_COMPONENTS)
 endif()
-find_package(libssh)
-if(libssh_FOUND)
-    set(THIRDPARTY_LIB ${THIRDPARTY_LIB} ssh)
+find_path(ELITE_LIBSSH_INCLUDE_DIR NAMES libssh/libssh.h)
+find_library(ELITE_LIBSSH_LIBRARY NAMES ssh)
+if(ELITE_LIBSSH_INCLUDE_DIR AND ELITE_LIBSSH_LIBRARY)
+    list(APPEND THIRDPARTY_LIB ssh)
     add_definitions(-DELITE_USE_LIB_SSH)
+else()
+    message(WARNING "libssh was not found; SSH support will use external commands where available")
 endif()
 
 configure_file(
@@ -173,6 +176,10 @@ target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_LIB_INCLUDE_DI
 target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_LIB_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${Boost_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${Boost_INCLUDE_DIRS})
+if(ELITE_LIBSSH_INCLUDE_DIR AND ELITE_LIBSSH_LIBRARY)
+    target_include_directories(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_LIBSSH_INCLUDE_DIR})
+    target_include_directories(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_LIBSSH_INCLUDE_DIR})
+endif()
 target_link_libraries(${PROJECT_NAME}_SHARED PRIVATE ${ELITE_BOOST_LIBRARIES} ${THIRDPARTY_LIB})
 target_link_libraries(${PROJECT_NAME}_STATIC PRIVATE ${ELITE_BOOST_LIBRARIES} ${THIRDPARTY_LIB})
 
@@ -191,6 +198,9 @@ target_include_directories(${PROJECT_NAME}_SHARED PUBLIC $<BUILD_INTERFACE:${PRO
 add_library(${PROJECT_NAME}::static ALIAS ${PROJECT_NAME}_STATIC)
 add_library(elite-cs-series-sdk::static ALIAS ${PROJECT_NAME}_STATIC)
 target_include_directories(${PROJECT_NAME}_STATIC PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>)
+
+string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
+option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
 
 # Compile examples, tests, documentation, and plugins based on options
 if(ELITE_COMPILE_EXAMPLES)
@@ -218,9 +228,6 @@ if(ELITE_COMPILE_POSE_ALG_PLUGIN)
     message(STATUS "Compile the pose algebra plugin")
     add_subdirectory(plugin/PoseAlgebra ${CMAKE_BINARY_DIR}/pose_alg_plugin/)
 endif()
-
-string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
-option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
 
 if((CMAKE_SYSTEM_NAME STREQUAL "Linux") AND ELITE_INSTALL)
     include(GNUInstallDirs)
