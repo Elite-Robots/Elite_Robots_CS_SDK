@@ -1,6 +1,6 @@
 # Changelog for Elite Robots CS SDK
 
-## [未发布]
+## [v1.5.0] - 2026-08-28
 
 ### 新增
 - 新增 `DashboardClient::remoteControl()` 重载，用于查询、打开和关闭远程控制模式；同时新增 `DashboardClient::remoteControlMode()` 和 `RemoteControlMode` 枚举，用于查询当前控制模式。

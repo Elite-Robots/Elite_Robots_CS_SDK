@@ -1,6 +1,6 @@
 # Changelog for Elite Robots CS SDK
 
-## [Unreleased]
+## [v1.5.0] - 2026-08-28
 
 ### Added
 - Added `DashboardClient::remoteControl()` overloads to query, enable, and disable remote control mode, plus `DashboardClient::remoteControlMode()` and the `RemoteControlMode` enum to query the current control mode.
