@@ -283,5 +283,13 @@ find_package(ament_cmake QUIET)
 option(ELITE_ROS2_BUILD "Build as a ROS 2 (ament_cmake) package" ${ament_cmake_FOUND})
 if(ELITE_ROS2_BUILD)
     find_package(ament_cmake REQUIRED)
+
+    # Export the SDK usage requirements through the ament package config so
+    # downstream ROS 2 packages can consume it with
+    # ament_target_dependencies(... elite_cs_series_sdk).
+    ament_export_include_directories(include)
+    ament_export_libraries(${PROJECT_NAME}_SHARED)
+    ament_export_dependencies(Boost)
+
     ament_package()
 endif()
