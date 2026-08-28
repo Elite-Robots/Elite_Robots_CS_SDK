@@ -20,7 +20,8 @@
 
   <!-- System dependencies (via rosdep) -->
   <depend>boost</depend>
-  <depend>libssh-dev</depend>
+
+  <!-- libssh is optional and auto-detected by CMake. -->
 
   <export>
     <build_type>ament_cmake</build_type>
