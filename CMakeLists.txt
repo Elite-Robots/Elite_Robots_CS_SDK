@@ -192,6 +192,9 @@ add_library(${PROJECT_NAME}::static ALIAS ${PROJECT_NAME}_STATIC)
 add_library(elite-cs-series-sdk::static ALIAS ${PROJECT_NAME}_STATIC)
 target_include_directories(${PROJECT_NAME}_STATIC PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include> $<INSTALL_INTERFACE:include>)
 
+string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
+option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
+
 # Compile examples, tests, documentation, and plugins based on options
 if(ELITE_COMPILE_EXAMPLES)
     message(STATUS "Compile the exmaples")
@@ -218,9 +221,6 @@ if(ELITE_COMPILE_POSE_ALG_PLUGIN)
     message(STATUS "Compile the pose algebra plugin")
     add_subdirectory(plugin/PoseAlgebra ${CMAKE_BINARY_DIR}/pose_alg_plugin/)
 endif()
-
-string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" is_top_level)
-option(ELITE_INSTALL "Include packaging rules" "${is_top_level}")
 
 if((CMAKE_SYSTEM_NAME STREQUAL "Linux") AND ELITE_INSTALL)
     include(GNUInstallDirs)
