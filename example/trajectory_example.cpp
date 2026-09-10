@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <boost/program_options.hpp>
+#include <chrono>
 #include <future>
 #include <iostream>
 #include <memory>
@@ -68,10 +69,12 @@ class TrajectoryControl {
         }
 
         ELITE_LOG_INFO("Wait external control script run...");
-        while (!driver_->isRobotConnected()) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (!waitForRobotConnectionStable(std::chrono::milliseconds(300), std::chrono::seconds(5))) {
+            ELITE_LOG_FATAL("Timed out waiting for external control script to become stable");
+            return false;
         }
         ELITE_LOG_INFO("External control script is running");
+
         return true;
     }
 
@@ -89,6 +92,26 @@ class TrajectoryControl {
     }
 
    private:
+    bool waitForRobotConnectionStable(std::chrono::milliseconds stable_period, std::chrono::milliseconds timeout) {
+        const auto start_time = std::chrono::steady_clock::now();
+        std::chrono::steady_clock::time_point connected_since;
+
+        while (std::chrono::steady_clock::now() - start_time < timeout) {
+            if (driver_->isRobotConnected()) {
+                if (connected_since == std::chrono::steady_clock::time_point{}) {
+                    connected_since = std::chrono::steady_clock::now();
+                } else if (std::chrono::steady_clock::now() - connected_since >= stable_period) {
+                    return true;
+                }
+            } else {
+                connected_since = std::chrono::steady_clock::time_point{};
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        return false;
+    }
+
     bool moveTrajectory(const std::vector<vector6d_t>& target_points, float point_time, float blend_radius, bool is_cartesian, float speed,
                         float acceleration) {
         current_point_.store(-1);
