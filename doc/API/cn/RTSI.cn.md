@@ -558,12 +558,18 @@ vector6d_t getActualJointTemperatures()
 ### 获取实际TCP位姿
 ```cpp
 vector6d_t getActualTCPPose()
+vector6d_t getActualTCPPose(const vector6d_t& user_frame_pose)
+vector6d_t getActualTCPPose(const UserFrame& user_frame)
 ```
 - ***功能***
 
     获取工具的实际笛卡尔坐标
 
-- ***返回值***：[x, y, z, rx, ry, rz]，其中x,y,z是位置向量，rx,ry,rz是旋转向量
+- ***参数***
+    - user_frame_pose：可选的用户坐标系相对于基座坐标系的位姿 `[x, y, z, rx, ry, rz]`，位置单位为 m，姿态单位为 rad。
+    - user_frame：用户坐标系对象，使用其中相对于基座坐标系的 `pose` 字段进行转换。
+
+- ***返回值***：无参数重载返回基座坐标系下的 `[x, y, z, rx, ry, rz]`；传入用户坐标系位姿或 `UserFrame` 对象时，返回对应用户坐标系下的位姿。
 
 ---
 

@@ -48,16 +48,26 @@ TrajectoryInterface::TrajectoryInterface(int port, std::shared_ptr<TcpServer::St
 TrajectoryInterface::~TrajectoryInterface() { server_->unsetReceiveCallback(); }
 
 bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian) {
-    return writeTrajectoryPoint(positions, time, blend_radius, cartesian, 0.0f, 0.0f);
+    return writeTrajectoryPoint(positions, time, blend_radius, cartesian, 0.0f, 0.0f, BASE_USER_FRAME_ID);
+}
+
+bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian,
+                                               int32_t user_frame_id) {
+    return writeTrajectoryPoint(positions, time, blend_radius, cartesian, 0.0f, 0.0f, user_frame_id);
 }
 
 bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed,
                                                float acceleration) {
-    return writeTrajectoryPoint(positions, 0.0f, blend_radius, cartesian, speed, acceleration);
+    return writeTrajectoryPoint(positions, 0.0f, blend_radius, cartesian, speed, acceleration, BASE_USER_FRAME_ID);
+}
+
+bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed,
+                                               float acceleration, int32_t user_frame_id) {
+    return writeTrajectoryPoint(positions, 0.0f, blend_radius, cartesian, speed, acceleration, user_frame_id);
 }
 
 bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian,
-                                               float speed, float acceleration) {
+                                               float speed, float acceleration, int32_t user_frame_id) {
     int32_t buffer[TRAJECTORY_MESSAGE_LEN] = {0};
     for (size_t i = 0; i < 6; i++) {
         int32_t rounded_pos = static_cast<int32_t>(std::round(positions[i] * CONTROL::POS_ZOOM_RATIO));
@@ -72,6 +82,7 @@ bool TrajectoryInterface::writeTrajectoryPoint(const vector6d_t& positions, floa
     } else {
         buffer[20] = htonl((int)TrajectoryMotionType::JOINT);
     }
+    buffer[21] = htonl(user_frame_id);
 
     return write(buffer, sizeof(buffer)) > 0;
 }

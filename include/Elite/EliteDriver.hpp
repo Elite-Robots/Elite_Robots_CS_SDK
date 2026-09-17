@@ -15,6 +15,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace ELITE {
 
@@ -68,6 +69,12 @@ class EliteDriverConfig {
 
     // Stable duration [S] required before locking hold position after extrapolation speed reaches zero.
     float servoj_hold_stable_time = 0.04;
+
+    // SDK-managed user frames. The pose is expressed in the base frame.
+    std::vector<UserFrame> user_frames;
+
+    // Number of user frame slots generated in the robot script.
+    int32_t max_user_frame_count = MAX_USER_FRAME_COUNT;
 
     EliteDriverConfig() = default;
     ~EliteDriverConfig() = default;
@@ -133,25 +140,63 @@ class EliteDriver {
     ELITE_EXPORT ~EliteDriver();
 
     /**
-     * @brief Write servoj() points to robot
+     * @brief Write a servoj() point using the current active user frame.
      *
-     * @param pos points
+     * The current active user frame is used only when cartesian is true. The
+     * default active frame is the base frame. Joint positions are independent
+     * of the active user frame.
+     *
+     * @param pos Target Cartesian pose or joint positions.
      * @param timeout_ms The read timeout configuration for the reverse socket running in the external control script on the robot.
-     * @param cartesian True if the point sent is cartesian, false if joint-based
-     * @return true Joint angles sent successfully.
-     * @return false Fail to send joint angles.
+     * @param cartesian True if pos is a Cartesian pose, false if pos contains joint positions.
+     * @return true The point was sent successfully.
+     * @return false The point could not be sent.
      */
     ELITE_EXPORT bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false);
 
     /**
-     * @brief Write speedl() velocity to robot
+     * @brief Write a servoj() point expressed in a specified user frame.
      *
-     * @param vel line velocity ([x, y, z, rx, ry, rz])
+     * The user frame is used only when cartesian is true. Joint positions are
+     * independent of the selected user frame.
+     *
+     * @param pos Target Cartesian pose or joint positions.
      * @param timeout_ms The read timeout configuration for the reverse socket running in the external control script on the robot.
-     * @return true Linear velocity sent successfully.
-     * @return false Fail to send linear velocity.
+     * @param cartesian True if pos is a Cartesian pose, false if pos contains joint positions.
+     * @param user_frame_id -1 for the base frame, or a user frame id in the range
+     *                       [0, max_user_frame_count).
+     * @return true The point was sent successfully.
+     * @return false The frame id or other input is invalid, or the point could not be sent.
+     */
+    ELITE_EXPORT bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian, int32_t user_frame_id);
+
+    /**
+     * @brief Write speedl() velocity using the current active user frame.
+     *
+     * The current active user frame is used to interpret the velocity. The
+     * default active frame is the base frame.
+     *
+     * @param vel TCP linear and angular velocity [vx, vy, vz, wx, wy, wz].
+     * @param timeout_ms The read timeout configuration for the reverse socket running in the external control script on the robot.
+     * @return true The velocity was sent successfully.
+     * @return false The velocity could not be sent.
      */
     ELITE_EXPORT bool writeSpeedl(const vector6d_t& vel, int timeout_ms);
+
+    /**
+     * @brief Write speedl() velocity expressed in a specified user frame.
+     *
+     * The velocity is projected from the specified user frame into the base
+     * frame before it is sent to the robot.
+     *
+     * @param vel TCP linear and angular velocity [vx, vy, vz, wx, wy, wz].
+     * @param timeout_ms The read timeout configuration for the reverse socket running in the external control script on the robot.
+     * @param user_frame_id -1 for the base frame, or a user frame id in the range
+     *                        [0, max_user_frame_count).
+     * @return true The velocity was sent successfully.
+     * @return false The frame id or other input is invalid, or the velocity could not be sent.
+     */
+    ELITE_EXPORT bool writeSpeedl(const vector6d_t& vel, int timeout_ms, int32_t user_frame_id);
 
     /**
      * @brief Write speedj() velocity to robot
@@ -162,6 +207,85 @@ class EliteDriver {
      * @return false Fail to send joint velocity.
      */
     ELITE_EXPORT bool writeSpeedj(const vector6d_t& vel, int timeout_ms);
+
+    /**
+     * @brief Add or update an SDK-managed user frame from an id and pose.
+     *
+     * The pose is stored by the SDK and synchronized to the External Control
+     * script through the script command socket.
+     *
+     * @param frame_id User frame slot id in the range [0, max_user_frame_count).
+     *                 The id selects which SDK-managed user frame is added or updated.
+     * @param pose User frame pose expressed relative to the base frame.
+     * @return true The frame was accepted and the update was sent successfully.
+     * @return false The frame id is invalid or the update could not be sent.
+     */
+    ELITE_EXPORT bool setUserFrame(int32_t frame_id, const vector6d_t& pose);
+
+    /**
+     * @brief Add or update an SDK-managed user frame from a UserFrame object.
+     *
+     * This overload uses the object's id and pose fields. The name and valid
+     * fields are not updated by this call.
+     *
+     * @param frame User frame containing the id and pose to synchronize. The
+     *              id must be in the range [0, max_user_frame_count), and the
+     *              pose must be expressed relative to the base frame.
+     * @return true The frame was accepted and the update was sent successfully.
+     * @return false The frame id is invalid or the update could not be sent.
+     */
+    ELITE_EXPORT bool setUserFrame(const UserFrame& frame);
+
+    /**
+     * @brief Get an SDK-managed user frame by id.
+     *
+     * This function reads the SDK-managed cache and does not query the
+     * teach pendant's user-frame table.
+     *
+     * @param frame_id User frame slot id to query, in the range
+     *                 [0, max_user_frame_count).
+     * @param frame Output user frame.
+     * @return true A valid user frame was found.
+     * @return false No valid user frame was found for the specified id.
+     */
+    ELITE_EXPORT bool getUserFrame(int32_t frame_id, UserFrame& frame) const;
+
+    /**
+     * @brief Get all SDK-managed user frames.
+     *
+     * The returned vector is a copy of the SDK-managed cache.
+     *
+     * @return The currently configured user frames. Returns an empty vector
+     *         when no user frames are configured.
+     */
+    ELITE_EXPORT std::vector<UserFrame> getUserFrames() const;
+
+    /**
+     * @brief Select the default user frame for current-frame overloads.
+     *
+     * The selected frame is used by Cartesian overloads that do not receive an
+     * explicit user frame id. This includes the no-frame-id overloads of
+     * writeServoj(), writeSpeedl(), and both Cartesian
+     * writeTrajectoryPoint() overloads. For writeTrajectoryPoint(), the
+     * active frame is used only when cartesian is true. Joint commands,
+     * writeSpeedj(), and joint-mode writeTrajectoryPoint() are not affected.
+     * The default value is -1, which represents the base frame.
+     *
+     * @param user_frame_id -1 to select the base frame, or a configured and valid
+     *                        SDK-managed user frame id in the range
+     *                        [0, max_user_frame_count).
+     * @return true The active frame was selected successfully.
+     * @return false The frame id is invalid or the user frame is not configured.
+     */
+    ELITE_EXPORT bool setActiveUserFrame(int32_t user_frame_id);
+
+    /**
+     * @brief Get the default user frame used by current-frame overloads.
+     *
+     * @return The active user frame id. -1 represents the base frame; a
+     *         non-negative value identifies an SDK-managed user frame slot.
+     */
+    ELITE_EXPORT int32_t getActiveUserFrame() const;
 
     /**
      * @brief Register a callback for the robot-based trajectory execution completion.
@@ -193,6 +317,24 @@ class EliteDriver {
     ELITE_EXPORT bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian);
 
     /**
+     * @brief Write a timed trajectory point in a specified user frame.
+     *
+     * The user frame is used only when cartesian is true. Joint positions are
+     * independent of the selected user frame.
+     *
+     * @param positions Desired joint or Cartesian positions.
+     * @param time Time for the robot to reach this point.
+     * @param blend_radius The radius to be used for blending between control points.
+     * @param cartesian True if positions are Cartesian, false if joint-based.
+     * @param user_frame_id -1 for the base frame, or a user frame id in the range
+     *                       [0, max_user_frame_count).
+     * @return true Trajectory point sent successfully.
+     * @return false The frame id or other input is invalid, or the point could not be sent.
+     */
+    ELITE_EXPORT bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian,
+                                           int32_t user_frame_id);
+
+    /**
      * @brief Writes a trajectory point onto the dedicated socket.
      *
      * @param positions Desired joint or cartesian positions
@@ -205,6 +347,25 @@ class EliteDriver {
      */
     ELITE_EXPORT bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed,
                                            float acceleration);
+
+    /**
+     * @brief Write a speed-planned trajectory point in a specified user frame.
+     *
+     * The time is fixed to zero. The user frame is used only when cartesian
+     * is true. Joint positions are independent of the selected user frame.
+     *
+     * @param positions Desired joint or Cartesian positions.
+     * @param blend_radius The radius to be used for blending between control points.
+     * @param cartesian True if positions are Cartesian, false if joint-based.
+     * @param speed Joint speed for movej or TCP speed for movel.
+     * @param acceleration Joint acceleration for movej or TCP acceleration for movel.
+     * @param user_frame_id -1 for the base frame, or a user frame id in the range
+     *                       [0, max_user_frame_count).
+     * @return true Trajectory point sent successfully.
+     * @return false The frame id or other input is invalid, or the point could not be sent.
+     */
+    ELITE_EXPORT bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed,
+                                           float acceleration, int32_t user_frame_id);
 
     /**
      * @brief Writes a control message in trajectory forward mode.

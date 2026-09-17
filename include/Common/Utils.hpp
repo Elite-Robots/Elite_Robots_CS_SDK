@@ -7,6 +7,7 @@
 #define __UTILS_HPP__
 
 #include <Elite/EndianUtils.hpp>
+#include <Elite/FrameUtils.hpp>
 #include <Elite/RtUtils.hpp>
 #include <Elite/SshUtils.hpp>
 #include <Elite/StringUtils.hpp>

@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include "EliteException.hpp"
+#include "FrameUtils.hpp"
 #include "Log.hpp"
 #include "RtUtils.hpp"
 #include "RtsiIOInterface.hpp"
@@ -317,6 +318,15 @@ vector6d_t RtsiIOInterface::getActualTCPPose() {
     vector6d_t result{{0}};
     getRecipeValue("actual_TCP_pose", result);
     return result;
+}
+
+vector6d_t RtsiIOInterface::getActualTCPPose(const vector6d_t& user_frame_pose) {
+    const vector6d_t base_pose = getActualTCPPose();
+    return poseFromBaseFrame(base_pose, user_frame_pose);
+}
+
+vector6d_t RtsiIOInterface::getActualTCPPose(const UserFrame& user_frame) {
+    return getActualTCPPose(user_frame.pose);
 }
 
 vector6d_t RtsiIOInterface::getAcutalTCPVelocity() {

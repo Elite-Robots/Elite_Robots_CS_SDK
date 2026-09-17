@@ -85,6 +85,8 @@ Sends a servo motion instruction to the robot.
     
 - ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
 
+When `cartesian` is `true`, this overload uses the current active frame. The active frame is the base frame by default.
+
 ---
 
 ### ***Control End-effector Velocity***
@@ -96,6 +98,39 @@ Sends a linear velocity control instruction to the robot.
 - ***Parameters***
     - vel: The linear velocity [x, y, z, rx, ry, rz].
     - timeout_ms: Sets the timeout for the robot to read the next instruction. If it is less than or equal to 0, it will wait indefinitely.
+- ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
+
+This overload uses the current active frame. The active frame is the base frame by default.
+
+### ***Control Servo Pose or Joint Position in a Specified User Frame***
+```cpp
+bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian, int32_t user_frame_id)
+```
+- ***Function***
+
+Sends a servo motion instruction. When `cartesian` is `true`, `pos` is interpreted in the specified user frame and the robot-side script converts the target pose to the base frame before execution. When `cartesian` is `false`, `pos` contains joint angles and the frame id is ignored.
+
+- ***Parameters***
+    - pos: Target pose `[x, y, z, rx, ry, rz]` in meters and radians when `cartesian` is `true`; joint angles when it is `false`.
+    - timeout_ms: Sets the timeout for the robot to read the next instruction. If it is less than or equal to 0, it will wait indefinitely.
+    - cartesian: `true` for a Cartesian target and `false` for a joint target.
+    - user_frame_id: User frame id. `-1` represents the base frame; a non-negative value represents an SDK-managed user frame.
+
+- ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
+
+### ***Control End-effector Velocity in a Specified User Frame***
+```cpp
+bool writeSpeedl(const vector6d_t& vel, int timeout_ms, int32_t user_frame_id)
+```
+- ***Function***
+
+Interprets the TCP linear and angular velocity in the specified user frame. The SDK projects the velocity into the base frame before sending it to the robot.
+
+- ***Parameters***
+    - vel: Velocity `[vx, vy, vz, wx, wy, wz]`; linear velocity is in m/s and angular velocity is in rad/s.
+    - timeout_ms: Sets the timeout for the robot to read the next instruction. If it is less than or equal to 0, it will wait indefinitely.
+    - user_frame_id: `-1` represents the base frame; a non-negative value represents an SDK-managed user frame.
+
 - ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
 
 ---
@@ -128,6 +163,95 @@ Send commands for Freedrive mode, such as enabling and stopping Freedrive.
 
 ---
 
+## User Frame Transformation
+
+### ***Set a User Frame***
+```cpp
+bool setUserFrame(int32_t frame_id, const vector6d_t& pose)
+```
+- ***Function***
+
+Adds or updates an SDK-managed user frame. The pose is stored by the SDK and synchronized to the External Control script through the `script_command_socket`.
+
+- ***Parameters***
+    - frame_id: User frame id in the range `[0, max_user_frame_count)`.
+    - pose: User frame pose relative to the base frame, formatted as `[x, y, z, rx, ry, rz]`; position is in meters and orientation is in radians.
+
+- ***Return Value***: Returns true if the SDK writes the update to the synchronization socket successfully, and false otherwise.
+
+### ***Set a User Frame (Object Overload)***
+```cpp
+bool setUserFrame(const UserFrame& frame)
+```
+- ***Function***
+
+Adds or updates an SDK-managed user frame using a `UserFrame` object. The `id` and `pose` fields are used for synchronization.
+
+- ***Parameters***
+    - frame: User frame object. `id` is the frame id and `pose` is the pose relative to the base frame. This overload uses `id` and `pose`; `name` and `valid` are not updated by this call.
+
+- ***Return Value***: Returns true if the SDK writes the update to the synchronization socket successfully, and false otherwise.
+
+### ***Get a Specified User Frame***
+```cpp
+bool getUserFrame(int32_t frame_id, UserFrame& frame) const
+```
+- ***Function***
+
+Gets a specified user frame from the SDK-managed cache. This function does not read the teach pendant's user-frame table.
+
+- ***Parameters***
+    - frame_id: User frame id to query.
+    - frame: Output user frame object.
+
+- ***Return Value***: Returns true when a valid frame is found, and false otherwise.
+
+### ***Get All User Frames***
+```cpp
+std::vector<UserFrame> getUserFrames() const
+```
+- ***Function***
+
+Returns all user frames currently stored in the SDK-managed cache. The returned vector is a copy; it does not represent a live teach-pendant table.
+
+- ***Return Value***: The current user-frame list, or an empty vector when no user frames are configured.
+
+### ***Set the Current Active User Frame***
+```cpp
+bool setActiveUserFrame(int32_t user_frame_id)
+```
+- ***Function***
+
+Sets the SDK's current active default frame. The default value is `-1`, which represents the base frame.
+
+- ***Parameters***
+    - user_frame_id: `-1` represents the base frame. A non-negative value represents a configured and valid SDK-managed user frame.
+
+- ***Return Value***: Returns true when the frame is selected successfully. Returns false when the id is outside the configured range or the frame does not exist or is invalid.
+
+- ***Note***
+
+The following Cartesian overloads without an explicit `user_frame_id` use the current active frame:
+
+- `writeServoj(const vector6d_t&, int, bool)`
+- `writeSpeedl(const vector6d_t&, int)`
+- `writeTrajectoryPoint(const vector6d_t&, float, float, bool)`
+- `writeTrajectoryPoint(const vector6d_t&, float, bool, float, float)`
+
+For `writeTrajectoryPoint()`, the active frame is used only when `cartesian == true`. When `cartesian == false`, `positions` contains joint angles and is not affected by the active frame. `writeSpeedj()` is also not affected.
+
+### ***Get the Current Active User Frame***
+```cpp
+int32_t getActiveUserFrame() const
+```
+- ***Function***
+
+Gets the id of the SDK's current active default frame.
+
+- ***Return Value***: The current active frame id; `-1` represents the base frame.
+
+---
+
 ## Trajectory Motion
 
 ### ***Set Trajectory Motion Result Callback***
@@ -142,24 +266,95 @@ One way to control the robot is to send all the waypoints to the robot at once. 
 
 ---
 
-### ***Write Trajectory Waypoint***
+### ***Write a Timed Trajectory Waypoint***
 ```cpp
 bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian)
-bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed, float acceleration)
 ```
 - ***Function***
-Writes a trajectory waypoint to a specific socket.
-- ***Parameters***
-    - positions: The waypoint.
-    - time: Used only by the first overload. The time to reach the waypoint.
-    - blend_radius: The transition radius between two waypoints.
-    - cartesian: If the sent point is Cartesian, it is True. If it is joint-based, it is false.
-    - speed: Used only by the second overload. Joint speed for `movej` or TCP speed for `movel`.
-    - acceleration: Used only by the second overload. Joint acceleration for `movej` or TCP acceleration for `movel`.
-- ***Note***: The second overload fixes `time` to `0`, so the robot plans the motion with the provided speed and acceleration.
-- ***Return Value***: Returns true if the instruction is sent successfully, and false if it fails.
+Writes a trajectory waypoint to the trajectory socket and plans the motion by `time`.
 
----
+- ***Parameters***
+    - positions: Joint or Cartesian waypoint. A Cartesian pose uses `[x, y, z, rx, ry, rz]`, with meters for position and radians for orientation.
+    - time: Time for the robot to reach the waypoint.
+    - blend_radius: Transition radius between two waypoints.
+    - cartesian: `true` for a Cartesian waypoint and `false` for a joint waypoint.
+
+- ***Note***
+
+    - When `time == 0`, the robot uses the controller's default `movej` / `movel` parameters.
+    - When `cartesian == true`, the waypoint is interpreted in the current active user frame. If the active frame is the base frame, this is equivalent to base-frame coordinates.
+    - When `cartesian == false`, `positions` contains joint angles and is not affected by the current active user frame.
+
+- ***Return Value***: Returns true if the waypoint is sent successfully, and false if it fails.
+
+### ***Write a Timed Trajectory Waypoint in a Specified User Frame***
+```cpp
+bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian,
+                          int32_t user_frame_id)
+```
+- ***Function***
+
+Writes a trajectory waypoint to the trajectory socket and plans the motion by `time`. When `cartesian` is `true`, the waypoint is interpreted in the specified user frame and converted to the base frame before execution.
+
+- ***Parameters***
+    - positions: Joint or Cartesian waypoint. A Cartesian pose uses `[x, y, z, rx, ry, rz]`, with meters for position and radians for orientation.
+    - time: Time for the robot to reach the waypoint.
+    - blend_radius: Transition radius between two waypoints.
+    - cartesian: `true` for a Cartesian waypoint and `false` for a joint waypoint.
+    - user_frame_id: `-1` represents the base frame; a non-negative value represents an SDK-managed user frame.
+
+- ***Note***
+
+    - When `time == 0`, the robot uses the controller's default `movej` / `movel` parameters.
+    - `user_frame_id` is used only when `cartesian == true`. When `cartesian == false`, `positions` contains joint angles and `user_frame_id` has no effect.
+
+- ***Return Value***: Returns true if the waypoint is sent successfully, and false if it fails.
+
+### ***Write a Speed-planned Trajectory Waypoint***
+```cpp
+bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian,
+                          float speed, float acceleration)
+```
+- ***Function***
+
+Writes a trajectory waypoint to the trajectory socket with `time` fixed to `0`, using the supplied speed and acceleration.
+
+- ***Parameters***
+    - positions: Joint or Cartesian waypoint. A Cartesian pose uses `[x, y, z, rx, ry, rz]`, with meters for position and radians for orientation.
+    - blend_radius: Transition radius between two waypoints.
+    - cartesian: `true` for a Cartesian waypoint and `false` for a joint waypoint.
+    - speed: Joint speed for `movej` or TCP speed for `movel`.
+    - acceleration: Joint acceleration for `movej` or TCP acceleration for `movel`.
+
+- ***Note***
+
+    - When `cartesian == true`, the waypoint is interpreted in the current active user frame. If the active frame is the base frame, this is equivalent to base-frame coordinates.
+    - When `cartesian == false`, `positions` contains joint angles and is not affected by the current active user frame.
+
+- ***Return Value***: Returns true if the waypoint is sent successfully, and false if it fails.
+
+### ***Write a Speed-planned Trajectory Waypoint in a Specified User Frame***
+```cpp
+bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian,
+                          float speed, float acceleration, int32_t user_frame_id)
+```
+- ***Function***
+
+Writes a trajectory waypoint to the trajectory socket with `time` fixed to `0`, using the supplied speed and acceleration. When `cartesian` is `true`, the waypoint is interpreted in the specified user frame and converted to the base frame before execution.
+
+- ***Parameters***
+    - positions: Joint or Cartesian waypoint. A Cartesian pose uses `[x, y, z, rx, ry, rz]`, with meters for position and radians for orientation.
+    - blend_radius: Transition radius between two waypoints.
+    - cartesian: `true` for a Cartesian waypoint and `false` for a joint waypoint.
+    - speed: Joint speed for `movej` or TCP speed for `movel`.
+    - acceleration: Joint acceleration for `movej` or TCP acceleration for `movel`.
+    - user_frame_id: `-1` represents the base frame; a non-negative value represents an SDK-managed user frame.
+
+- ***Note***
+
+    - `user_frame_id` is used only when `cartesian == true`. When `cartesian == false`, `positions` contains joint angles and `user_frame_id` has no effect.
+
+- ***Return Value***: Returns true if the waypoint is sent successfully, and false if it fails.
 
 ### ***Trajectory Control Action***
 ```cpp

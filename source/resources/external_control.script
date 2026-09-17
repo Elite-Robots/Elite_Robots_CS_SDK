@@ -49,6 +49,7 @@ SCRIPT_CMD_END_BOARD_RS485 = 8
 SCRIPT_CMD_SET_COLLISION_DETECT_ENABLED = 9
 SCRIPT_CMD_SET_COLLISION_SENSITIVITY = 10
 SCRIPT_CMD_SET_MOUNTING_PLANE = 11
+SCRIPT_CMD_SET_USER_FRAME = 12
 
 SCRIPT_CMD_RESULT_SOCAT_RUN = 1
 SCRIPT_CMD_RESULT_SOCAT_CANCEL = 2
@@ -61,6 +62,19 @@ FREEDRIVE_END = -1
 REVERSE_DATA_SIZE = {{REVERSE_DATA_SIZE_REPLACE}}
 TRAJECTORY_DATA_SIZE = {{TRAJECTORY_DATA_SIZE_REPLACE}}
 SCRIPT_COMMAND_DATA_SIZE = {{SCRIPT_COMMAND_DATA_SIZE_REPLACE}}
+
+def getUserFrame(frame_id):
+    if frame_id < 0:
+        return [0, 0, 0, 0, 0, 0]
+    if frame_id >= len(user_frames):
+        return [0, 0, 0, 0, 0, 0]
+    with USER_FRAME_MUTEX:
+        return user_frames[frame_id]
+
+def poseInUserFrame(pose, frame_id):
+    if frame_id < 0:
+        return pose
+    return pose_trans(getUserFrame(frame_id), pose)
 
 # Any motion commands resulting in a velocity higher than that will be ignored.
 JOINT_IGNORE_SPEED = 30.0
@@ -89,6 +103,8 @@ SERVOJ_HOLD_STABLE_TIME = max(0.0, {{SERVOJ_HOLD_STABLE_TIME_REPLACE}})
 #Global variables are also showed in the Teach pendants variable list
 global control_mode
 global script_command
+global user_frames
+global USER_FRAME_MUTEX
 global cmd_speedl_tool_speed
 global cmd_speed_joint
 global steptime
@@ -108,6 +124,8 @@ global trajectory_total_points
 global trajectory_active_point_index
 trajectory_total_points = 0
 trajectory_active_point_index = -1
+user_frames = {{USER_FRAMES_REPLACE}}
+USER_FRAME_MUTEX = threading.Lock()
 
 def sendTrajectoryFeedback(message_type, point_index, total_points, result, point):
     socket_send_int(message_type, "trajectory_socket")
@@ -197,7 +215,12 @@ def trajectoryThread():
             acceleration = raw_point[8] / COMMON_ZOOM_RATIO
             time = raw_point[19] / TIME_ZOOM_RATIO
             
-            motion_type = raw_point[21]
+            # raw_point[0] is the element count returned by
+            # socket_read_binary_integer; payload data starts at index 1.
+            motion_type = raw_point[21]       # payload[20]
+            user_frame_id = raw_point[22]      # payload[21]
+            if motion_type == TRAJECTORY_MOTION_CARTESIAN:
+                point = poseInUserFrame(point, user_frame_id)
             
             if motion_type == TRAJECTORY_MOTION_JOINT:
                 if time > 0:
@@ -409,6 +432,13 @@ def scriptCommands():
                 gravity = [9.82 * sin(tilt) * sin(z_rotation), -9.82 * sin(tilt) * cos(z_rotation), 9.82 * cos(tilt)]
                 set_gravity(gravity)
                 textmsg("set_gravity executed: z_rotation=" + str(z_rotation) + ", tilt=" + str(tilt) + ", gravity=" + str(gravity))
+            elif script_command == SCRIPT_CMD_SET_USER_FRAME:
+                frame_id = raw_command[2]
+                if frame_id >= 0 and frame_id < len(user_frames):
+                    with USER_FRAME_MUTEX:
+                        user_frames[frame_id] = [raw_command[3] / COMMON_ZOOM_RATIO, raw_command[4] / COMMON_ZOOM_RATIO,
+                                                 raw_command[5] / COMMON_ZOOM_RATIO, raw_command[6] / COMMON_ZOOM_RATIO,
+                                                 raw_command[7] / COMMON_ZOOM_RATIO, raw_command[8] / COMMON_ZOOM_RATIO]
 
 # HEADER_END
 
@@ -444,6 +474,8 @@ while control_mode > MODE_STOPPED:
         read_timeout = params_mult[1] / 1000.0
 
         # Update new motion mode
+        # params_mult[0] is the element count; raw index 8 is the frame id
+        # and raw index 9 is the control mode for the 9-int reverse message.
         if control_mode != params_mult[REVERSE_DATA_SIZE]:
             # Clear remaining trajectory points
             if control_mode == MODE_TRAJECTORY:
@@ -491,10 +523,13 @@ while control_mode > MODE_STOPPED:
                 setServoSetpoint(joints)
         elif control_mode == MODE_POSE:
             pose = [params_mult[2]/ POS_ZOOM_RATIO, params_mult[3]/ POS_ZOOM_RATIO, params_mult[4]/ POS_ZOOM_RATIO, params_mult[5]/ POS_ZOOM_RATIO, params_mult[6]/ POS_ZOOM_RATIO, params_mult[7]/ POS_ZOOM_RATIO]
+            pose = poseInUserFrame(pose, params_mult[8])
             with SERVO_MUTEX:
                 setServoSetpoint(get_inverse_kin(pose, cmd_servo_joints))
         elif control_mode == MODE_SPEEDL:
-            setSpeedl([params_mult[2] / POS_ZOOM_RATIO, params_mult[3] / POS_ZOOM_RATIO, params_mult[4] / POS_ZOOM_RATIO, params_mult[5] / POS_ZOOM_RATIO, params_mult[6] / POS_ZOOM_RATIO, params_mult[7] / POS_ZOOM_RATIO])
+            speedl_pose = [params_mult[2] / POS_ZOOM_RATIO, params_mult[3] / POS_ZOOM_RATIO, params_mult[4] / POS_ZOOM_RATIO,
+                           params_mult[5] / POS_ZOOM_RATIO, params_mult[6] / POS_ZOOM_RATIO, params_mult[7] / POS_ZOOM_RATIO]
+            setSpeedl(speedl_pose)
         elif control_mode == MODE_SPEEDJ:
             setSpeedj([params_mult[2] / POS_ZOOM_RATIO, params_mult[3] / POS_ZOOM_RATIO, params_mult[4] / POS_ZOOM_RATIO, params_mult[5] / POS_ZOOM_RATIO, params_mult[6] / POS_ZOOM_RATIO, params_mult[7] / POS_ZOOM_RATIO])
         elif control_mode == MODE_TRAJECTORY:

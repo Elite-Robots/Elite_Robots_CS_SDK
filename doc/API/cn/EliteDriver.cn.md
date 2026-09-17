@@ -89,6 +89,8 @@ bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian = false)
 
 - ***返回值***：指令发送成功返回 true，失败返回 false。
 
+    当 `cartesian` 为 `true` 且未使用带 `user_frame_id` 的重载时，目标位姿使用当前活动坐标系；默认活动坐标系为基座坐标系。
+
 ---
 
 ### ***控制末端速度***
@@ -102,7 +104,41 @@ bool writeSpeedl(const vector6d_t& vel, int timeout_ms)
     - vel：线速度 [x, y, z, rx, ry, rz]。
 
     - timeout_ms：设置机器人读取下一条指令的超时时间，小于等于0时会无限等待。
-    
+
+- ***返回值***：指令发送成功返回 true，失败返回 false。
+
+    该重载使用当前活动坐标系；默认活动坐标系为基座坐标系。
+
+### ***在指定用户坐标系下控制伺服位姿或关节位置***
+```cpp
+bool writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian, int32_t user_frame_id)
+```
+- ***功能***
+
+    向机器人发送伺服运动指令。当 `cartesian` 为 `true` 时，`pos` 按指定用户坐标系解释，机器人端会将目标位姿转换到基座坐标系后执行；当 `cartesian` 为 `false` 时，`pos` 为关节角，用户坐标系参数不参与运动计算。
+
+- ***参数***
+    - pos：目标位姿，格式为 `[x,y,z,rx,ry,rz]`。位置单位为 m，姿态单位为 rad。
+    - timeout_ms：设置机器人读取下一条指令的超时时间，小于等于 0 时会无限等待。
+    - cartesian：必须为 `true` 才使用用户坐标系；为 `false` 时 `pos` 是关节角，`user_frame_id` 被忽略。
+    - user_frame_id：用户坐标系编号。`-1` 表示基座坐标系，非负值表示 SDK 管理的用户坐标系。
+
+- ***返回值***：指令发送成功返回 true，失败返回 false。
+
+### ***在指定用户坐标系下控制末端速度***
+```cpp
+bool writeSpeedl(const vector6d_t& vel, int timeout_ms, int32_t user_frame_id)
+```
+
+- ***功能***
+
+    按指定用户坐标系解释 TCP 线速度和角速度。SDK 会根据用户坐标系相对于基座的旋转，将速度投影到基座坐标系后发送给机器人。
+
+- ***参数***
+    - vel：速度 `[vx,vy,vz,wx,wy,wz]`。线速度单位为 m/s，角速度单位为 rad/s。
+    - timeout_ms：设置机器人读取下一条指令的超时时间。小于等于 0 时会无限等待。
+    - user_frame_id：`-1` 表示基座坐标系，非负值表示 SDK 管理的用户坐标系。
+
 - ***返回值***：指令发送成功返回 true，失败返回 false。
 
 ---
@@ -138,6 +174,95 @@ bool writeFreedrive(FreedriveAction action, int timeout_ms)
 
 ---
 
+## 用户坐标系变换
+
+### ***设置用户坐标系***
+```cpp
+bool setUserFrame(int32_t frame_id, const vector6d_t& pose)
+```
+- ***功能***
+
+    新增或更新一个 SDK 管理的用户坐标系。用户坐标系位姿保存到 SDK，并通过 `script_command_socket` 同步到 External Control 脚本。
+
+- ***参数***
+    - frame_id：用户坐标系编号，范围为 `[0, max_user_frame_count)`。
+    - pose：用户坐标系相对于基座坐标系的位姿 `[x,y,z,rx,ry,rz]`，位置单位为 m，姿态单位为 rad。
+
+- ***返回值***：SDK 成功写入同步 socket 返回 true，否则返回 false。
+
+### ***设置用户坐标系（对象重载）***
+```cpp
+bool setUserFrame(const UserFrame& frame)
+```
+- ***功能***
+
+    使用 `UserFrame` 对象新增或更新一个 SDK 管理的用户坐标系。当前同步使用对象中的 `id` 和 `pose` 字段。
+
+- ***参数***
+    - frame：用户坐标系对象。`id` 为坐标系编号，`pose` 为相对于基座坐标系的位姿；此重载实际使用 `id` 和 `pose`，`name`、`valid` 不会通过该调用更新。
+
+- ***返回值***：SDK 成功写入同步 socket 返回 true，否则返回 false。
+
+### ***获取指定用户坐标系***
+```cpp
+bool getUserFrame(int32_t frame_id, UserFrame& frame) const
+```
+- ***功能***
+
+    查询 SDK 当前保存的指定用户坐标系。该接口读取的是 SDK 缓存，不是示教器中的用户坐标系表。
+
+- ***参数***
+    - frame_id：要查询的用户坐标系编号。
+    - frame：输出用户坐标系对象。
+
+- ***返回值***：找到有效坐标系返回 true，否则返回 false。
+
+### ***获取全部用户坐标系***
+```cpp
+std::vector<UserFrame> getUserFrames() const
+```
+- ***功能***
+
+    返回 SDK 当前保存的全部用户坐标系列表。返回值是 SDK 内部缓存的副本，不是示教器中的用户坐标系表。
+
+- ***返回值***：SDK 当前保存的用户坐标系列表。未配置用户坐标系时返回空列表。
+
+### ***设置当前活动用户坐标系***
+```cpp
+bool setActiveUserFrame(int32_t user_frame_id)
+```
+- ***功能***
+
+    设置 SDK 当前活动的默认坐标系。默认值为 `-1`，表示基座坐标系。
+
+- ***参数***
+    - user_frame_id：`-1` 表示基座坐标系；非负值表示用户坐标系编号，且该坐标系必须已配置并有效。
+
+- ***返回值***：设置成功返回 true；编号超出配置范围或坐标系不存在、无效时返回 false。
+
+- ***说明***
+
+    以下接口即使不带 `user_frame_id` 的笛卡尔接口会默认使用当前活动坐标系：
+
+    - `writeServoj(const vector6d_t&, int, bool)`
+    - `writeSpeedl(const vector6d_t&, int)`
+    - `writeTrajectoryPoint(const vector6d_t&, float, float, bool)`
+    - `writeTrajectoryPoint(const vector6d_t&, float, bool, float, float)`
+
+    对于 `writeTrajectoryPoint()`，只有 `cartesian == true` 时才使用当前活动坐标系；当 `cartesian == false` 时，`positions` 表示关节角，不受活动坐标系影响。`writeSpeedj()` 也不受该设置影响。
+
+### ***获取当前活动用户坐标系***
+```cpp
+int32_t getActiveUserFrame() const
+```
+- ***功能***
+
+    获取 SDK 当前活动的默认坐标系编号。
+
+- ***返回值***：返回当前活动坐标系编号；`-1` 表示基座坐标系。
+
+---
+
 ## 轨迹运动
 
 ### ***设置轨迹运动结果回调***
@@ -154,36 +279,93 @@ void setTrajectoryResultCallback(std::function<void(TrajectoryMotionResult)> cb)
 
 ---
 
-### ***写入轨迹路点***
+### ***按时间写入轨迹路点***
 ```cpp
 bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian)
+```
+- ***功能***
+
+    向轨迹 socket 写入一个轨迹路点，并按 `time` 规划运动。
+
+- ***参数***
+    - positions：关节或笛卡尔路点。笛卡尔位姿格式为 `[x,y,z,rx,ry,rz]`，位置单位为 m，姿态单位为 rad。
+    - time：到达该路点的时间。
+    - blend_radius：两个路点之间的转接半径。
+    - cartesian：笛卡尔路点为 `true`，关节路点为 `false`。
+
+- ***说明***
+
+    - 当 `time == 0` 时，机器人使用控制器默认的 `movej` / `movel` 参数。
+    - 当 `cartesian == true` 时，路点使用当前活动用户坐标系解释；当前活动坐标系为基座坐标系时，等同于基座坐标系。
+    - 当 `cartesian == false` 时，`positions` 表示关节角，不受当前活动用户坐标系影响。
+
+- ***返回值***：路点发送成功返回 true，失败返回 false。
+
+### ***按时间写入指定用户坐标系下的轨迹路点***
+```cpp
+bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesin, int32_t user_frame_id)
+
+- ***功能***
+
+    向轨迹 socket 写入一个轨迹路点，并按 `time` 规划运动。笛卡尔路点使用指定用户坐标系解释，机器人执行前会将目标位姿转换到基座坐标系。
+
+- ***参数***
+    - positions：关节或笛卡尔路点。笛卡尔位姿格式为 `[x,y,z,rx,ry,rz]`，位置单位为 m，姿态单位为 rad。
+    - time：到达该路点的时间。
+    - blend_radius：两个路点之间的转接半径。
+    - cartesian：笛卡尔路点为 `true`，关节路点为 `false`。
+    - user_frame_id：`-1` 表示基座坐标系，非负值表示 SDK 管理的用户坐标系。
+
+- ***说明***
+
+    - 当 `time == 0` 时，机器人使用控制器默认的 `movej` / `movel` 参数。
+    - 仅当 `cartesian == true` 时使用 `user_frame_id`；当 `cartesian == false` 时，`positions` 表示关节角，`user_frame_id` 不生效。
+
+- ***返回值***：路点发送成功返回 true，失败返回 false。
+
+### ***按速度和加速度写入轨迹路点***
+```cpp
 bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed, float acceleration)
 ```
 - ***功能***
 
-    向专门的socket写入轨迹路点。
+    向轨迹 socket 写入一个轨迹路点，内部将 `time` 固定为 0，并按给定速度和加速度规划运动。
 
 - ***参数***
-    - positions：路点
-    
-    - time：仅第一个重载接口使用，表示到达路点的时间
-    
-    - blend_radius：两个路点的转接半径
-
-    - cartesian：如果发送的点是笛卡尔的，则为true，如果是基于关节的，则为false
-
-    - speed：仅第二个重载接口使用。关节轨迹时表示 `movej` 的关节速度，笛卡尔轨迹时表示 `movel` 的工具速度
-
-    - acceleration：仅第二个重载接口使用。关节轨迹时表示 `movej` 的关节加速度，笛卡尔轨迹时表示 `movel` 的工具加速度
+    - positions：关节或笛卡尔路点。笛卡尔位姿格式为 `[x,y,z,rx,ry,rz]`，位置单位为 m，姿态单位为 rad。
+    - blend_radius：两个路点之间的转接半径。
+    - cartesian：笛卡尔路点为 `true`，关节路点为 `false`。
+    - speed：关节轨迹时为 `movej` 的关节速度，笛卡尔轨迹时为 `movel` 的工具速度。
+    - acceleration：关节轨迹时为 `movej` 的关节加速度，笛卡尔轨迹时为 `movel` 的工具加速度。
 
 - ***说明***
 
-    - 第一个重载接口按 `time` 规划运动；当 `time == 0` 时，机器人使用控制器默认的 `movej` / `movel` 参数
-    - 第二个重载接口内部固定 `time = 0`，机器人按给定速度和加速度规划运动
+    - 当 `cartesian == true` 时，路点使用当前活动用户坐标系解释；当前活动坐标系为基座坐标系时，等同于基座坐标系。
+    - 当 `cartesian == false` 时，`positions` 表示关节角，不受当前活动用户坐标系影响。
 
-- ***返回值***：指令发送成功返回 true，失败返回 false。
+- ***返回值***：路点发送成功返回 true，失败返回 false。
 
----
+### ***按速度和加速度写入指定用户坐标系下的轨迹路点***
+```cpp
+bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian,  float speed, float acceleration, int32_t user_frame_id)
+```
+- ***功能***
+
+    向轨迹 socket 写入一个轨迹路点，内部将 `time` 固定为 0，并按给定速度和加速度规划运动。笛卡尔路点使用指定用户坐标系解释，机器人执行前会将目标位姿转换到基座坐标系。
+
+- ***参数***
+    - positions：关节或笛卡尔路点。笛卡尔位姿格式为 `[x,y,z,rx,ry,rz]`，位置单位为 m，姿态单位为 rad。
+    - blend_radius：两个路点之间的转接半径。
+    - cartesian：笛卡尔路点为 `true`，关节路点为 `false`。
+    - speed：关节轨迹时为 `movej` 的关节速度，笛卡尔轨迹时为 `movel` 的工具速度。
+    - acceleration：关节轨迹时为 `movej` 的关节加速度，笛卡尔轨迹时为 `movel` 的工具加速度。
+    - user_frame_id：`-1` 表示基座坐标系，非负值表示 SDK 管理的用户坐标系。
+
+- ***说明***
+
+    - 仅当 `cartesian == true` 时使用 `user_frame_id`；当 `cartesian == false` 时，`positions` 表示关节角，`user_frame_id` 不生效。
+
+- ***返回值***：路点发送成功返回 true，失败返回 false。
 
 ### ***轨迹控制动作***
 ```cpp

@@ -54,6 +54,12 @@ class EliteDriverConfig {
     // Stable duration [S] required before locking hold position after extrapolation speed reaches zero.
     float servoj_hold_stable_time = 0.04;
 
+    // SDK-managed user frames. The pose is expressed in the base frame.
+    std::vector<UserFrame> user_frames;
+
+    // Number of user frame slots generated in the robot script.
+    int32_t max_user_frame_count = MAX_USER_FRAME_COUNT;
+
     EliteDriverConfig() = default;
     ~EliteDriverConfig() = default;
 };
@@ -131,6 +137,19 @@ class EliteDriverConfig {
     - 类型：`float`
     - 描述：外推速度收敛到 0 后，锁定保持点所需的稳定持续时间 [S]。
 
+- `user_frames`
+    - 类型：`std::vector<UserFrame>`
+    - 描述：SDK 启动时管理的初始用户坐标系列表。每个 `UserFrame` 包含 `id`、`name`、`pose` 和 `valid` 字段。
+    - `id`：用户坐标系编号，范围为 `[0, max_user_frame_count)`。
+    - `name`：用户坐标系名称，由 SDK 保存，当前不参与机器人端的坐标变换。
+    - `pose`：用户坐标系相对于基座坐标系的位姿 `[x,y,z,rx,ry,rz]`，位置单位为 m，姿态单位为 rad。
+    - `valid`：坐标系是否有效。无效坐标系不会被用于运动和坐标转换。
+
+- `max_user_frame_count`
+    - 类型：`int32_t`
+    - 描述：机器人控制脚本生成的用户坐标系槽位数量，取值范围为 `1~16`，默认值为 `16`。用户坐标系编号必须小于该值。
+    - 注意：`-1` 保留表示基座坐标系，不属于 `user_frames` 的编号范围。
+
 ## 调参档位（网络抖动）
 
 说明：以下档位是基于网络质量的调参建议，不是强制默认值。单位中，时间参数为秒，速度阈值为 rad/s。
@@ -180,5 +199,4 @@ config.servoj_hold_stable_time = 0.04;
 | `servoj_hold_stable_time` | 0.01 ~ 0.10 | 过小会误判稳定，过大会延迟锁定保持点。 |
 
 注：以上为推荐工程范围，不是硬限制。建议单次只调整一个参数，并以 10%~20% 的步进逐步验证。
-
 

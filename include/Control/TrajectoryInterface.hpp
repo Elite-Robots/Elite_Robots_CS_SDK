@@ -22,7 +22,8 @@ enum class TrajectoryMotionType : int {
 
 class TrajectoryInterface : public ReversePort {
    public:
-    static const int TRAJECTORY_MESSAGE_LEN = 21;
+    // Existing fields plus one user frame id at the end.
+    static const int TRAJECTORY_MESSAGE_LEN = 22;
     static const int TRAJECTORY_FEEDBACK_LEN = 10;
 
     TrajectoryInterface() = delete;
@@ -65,6 +66,7 @@ class TrajectoryInterface : public ReversePort {
      * @return false
      */
     bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian);
+    bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian, int32_t user_frame_id);
 
     /**
      * @brief Writes a trajectory point onto the dedicated socket.
@@ -78,10 +80,12 @@ class TrajectoryInterface : public ReversePort {
      * @return false
      */
     bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed, float acceleration);
+    bool writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed, float acceleration,
+                              int32_t user_frame_id);
 
    private:
     bool writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian, float speed,
-                              float acceleration);
+                              float acceleration, int32_t user_frame_id);
 
     std::function<void(TrajectoryMotionResult)> motion_result_func_;
     std::function<void(const TrajectoryMotionFeedback&)> motion_feedback_func_;

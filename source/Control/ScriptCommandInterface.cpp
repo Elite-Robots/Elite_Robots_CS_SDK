@@ -92,4 +92,14 @@ bool ScriptCommandInterface::setMountingPlane(double z_rotation, double tilt) {
     return write(buffer, sizeof(buffer)) > 0;
 }
 
+bool ScriptCommandInterface::setUserFrame(int32_t frame_id, const vector6d_t& pose) {
+    int32_t buffer[SCRIPT_COMMAND_DATA_SIZE] = {0};
+    buffer[0] = htonl(static_cast<int32_t>(Cmd::SET_USER_FRAME));
+    buffer[1] = htonl(frame_id);
+    for (size_t i = 0; i < pose.size(); ++i) {
+        buffer[2 + i] = htonl(static_cast<int32_t>(std::llround(pose[i] * CONTROL::COMMON_ZOOM_RATIO)));
+    }
+    return write(buffer, sizeof(buffer)) > 0;
+}
+
 }  // namespace ELITE

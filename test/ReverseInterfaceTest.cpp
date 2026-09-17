@@ -77,7 +77,7 @@ TEST(REVERSE_INTERFACE, trajectory_control_action) {
     // data 1
     EXPECT_EQ(::htonl(buffer[2]), 10);
     // control mode
-    EXPECT_EQ(::htonl(buffer[7]), (int)ControlMode::MODE_TRAJECTORY);
+    EXPECT_EQ(::htonl(buffer[8]), (int)ControlMode::MODE_TRAJECTORY);
 
     client->socket_ptr->close();    
     tcp_resource->shutdown();
@@ -116,7 +116,7 @@ TEST(REVERSE_INTERFACE, joint_idle_command) {
     // data 1
     EXPECT_EQ(::htonl(buffer[6]), 6 * CONTROL::POS_ZOOM_RATIO);
     // control mode
-    EXPECT_EQ(::htonl(buffer[7]), (int)ControlMode::MODE_IDLE);
+    EXPECT_EQ(::htonl(buffer[8]), (int)ControlMode::MODE_IDLE);
     tcp_resource->shutdown();
 }
 

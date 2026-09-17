@@ -54,6 +54,12 @@ class EliteDriverConfig {
     // Stable duration [S] required before locking hold position after extrapolation speed reaches zero.
     float servoj_hold_stable_time = 0.04;
 
+    // SDK-managed user frames. The pose is expressed in the base frame.
+    std::vector<UserFrame> user_frames;
+
+    // Number of user frame slots generated in the robot script.
+    int32_t max_user_frame_count = MAX_USER_FRAME_COUNT;
+
     EliteDriverConfig() = default;
     ~EliteDriverConfig() = default;
 };
@@ -129,6 +135,19 @@ This class serves as the configuration input when constructing the `EliteDriver`
 - `servoj_hold_stable_time`
     - Type: `float`
     - Description: Stable duration [S] required before locking the hold position after extrapolation speed has converged to zero.
+
+- `user_frames`
+    - Type: `std::vector<UserFrame>`
+    - Description: Initial list of user frames managed by the SDK at startup. Each `UserFrame` contains `id`, `name`, `pose`, and `valid` fields.
+    - `id`: User frame id in the range `[0, max_user_frame_count)`.
+    - `name`: User frame name. It is stored by the SDK and is not currently used for robot-side coordinate conversion.
+    - `pose`: User frame pose relative to the base frame, formatted as `[x, y, z, rx, ry, rz]`; position is in meters and orientation is in radians.
+    - `valid`: Whether the frame is valid. Invalid frames are not used for motion or pose conversion.
+
+- `max_user_frame_count`
+    - Type: `int32_t`
+    - Description: Number of user-frame slots generated in the robot control script. The valid range is `1~16`, and the default is `16`. User frame ids must be less than this value.
+    - Note: `-1` is reserved for the base frame and is not an index in `user_frames`.
 
 ## Tuning Profiles (Network Jitter)
 

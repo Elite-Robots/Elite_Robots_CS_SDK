@@ -12,6 +12,7 @@
 #include "TcpServer.hpp"
 
 #include <boost/asio.hpp>
+#include <cstdint>
 #include <mutex>
 
 namespace ELITE {
@@ -24,7 +25,8 @@ namespace ELITE {
  */
 class ReverseInterface : public ReversePort {
    public:
-    static const int REVERSE_DATA_SIZE = 8;
+    // timeout + six values + mode + user frame id.
+    static const int REVERSE_DATA_SIZE = 9;
 
     ReverseInterface() = delete;
 
@@ -53,6 +55,8 @@ class ReverseInterface : public ReversePort {
      */
     bool writeJointCommand(const vector6d_t& pos, ControlMode mode, int timeout_ms);
     bool writeJointCommand(const vector6d_t* pos, ControlMode mode, int timeout_ms);
+    bool writeJointCommand(const vector6d_t& pos, ControlMode mode, int timeout_ms, int32_t user_frame_id);
+    bool writeJointCommand(const vector6d_t* pos, ControlMode mode, int timeout_ms, int32_t user_frame_id);
 
     /**
      * @brief Writes needed information to the robot to be read by the EliteRobot program.

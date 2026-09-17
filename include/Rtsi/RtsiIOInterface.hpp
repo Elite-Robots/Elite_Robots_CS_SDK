@@ -220,6 +220,17 @@ class RtsiIOInterface : protected RtsiClientInterface {
     [[deprecated("Use getActualTCPPose() instead. This function will be removed in June 2027.")]] ELITE_EXPORT vector6d_t
     getAcutalTCPPose();
     ELITE_EXPORT vector6d_t getActualTCPPose();
+    /**
+     * @param user_frame_pose User frame pose relative to the base frame:
+     *                        [x, y, z, rx, ry, rz], in meters and radians.
+     * @return Actual TCP pose expressed in the specified user frame.
+     */
+    ELITE_EXPORT vector6d_t getActualTCPPose(const vector6d_t& user_frame_pose);
+    /**
+     * @param user_frame User frame whose pose is relative to the base frame.
+     * @return Actual TCP pose expressed in the specified user frame.
+     */
+    ELITE_EXPORT vector6d_t getActualTCPPose(const UserFrame& user_frame);
 
     /**
      * @return vector6d_t Actual speed of the tool given in cartesian coordinates: [x, y, z, rx, ry, rz]/s,

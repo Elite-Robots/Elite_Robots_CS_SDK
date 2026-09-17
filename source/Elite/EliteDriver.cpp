@@ -3,12 +3,16 @@
 #include "EliteDriver.hpp"
 #include <boost/asio.hpp>
 #include <fstream>
+#include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <mutex>
 #include "ControlCommon.hpp"
 #include "ControlMode.hpp"
 #include "EliteException.hpp"
+#include "FrameUtils.hpp"
 #include "Log.hpp"
 #include "PrimaryPortInterface.hpp"
 #include "ReverseInterface.hpp"
@@ -39,6 +43,7 @@ static const std::string SERVOJ_EXTRAPOLATE_MAX_TIME_REPLACE = "{{SERVOJ_EXTRAPO
 static const std::string SERVOJ_DECELERATE_TIME_REPLACE = "{{SERVOJ_DECELERATE_TIME_REPLACE}}";
 static const std::string SERVOJ_HOLD_VELOCITY_THRESHOLD_REPLACE = "{{SERVOJ_HOLD_VELOCITY_THRESHOLD_REPLACE}}";
 static const std::string SERVOJ_HOLD_STABLE_TIME_REPLACE = "{{SERVOJ_HOLD_STABLE_TIME_REPLACE}}";
+static const std::string USER_FRAMES_REPLACE = "{{USER_FRAMES_REPLACE}}";
 
 class EliteDriver::Impl {
    public:
@@ -70,6 +75,10 @@ class EliteDriver::Impl {
     bool headless_mode_;
 
     std::shared_ptr<TcpServer::StaticResource> reverse_resource_;
+    mutable std::mutex user_frame_mutex_;
+    std::vector<UserFrame> user_frames_;
+    int32_t max_user_frame_count_ = MAX_USER_FRAME_COUNT;
+    int32_t active_user_frame_id_ = BASE_USER_FRAME_ID;
 };
 
 std::string EliteDriver::Impl::readScriptFile(const std::string& filepath) {
@@ -170,12 +179,41 @@ void EliteDriver::Impl::scriptParamWrite(std::string& file_string, const EliteDr
     while (file_string.find(STOP_J_REPLACE) != std::string::npos) {
         file_string.replace(file_string.find(STOP_J_REPLACE), STOP_J_REPLACE.length(), std::to_string(config.stopj_acc));
     }
+
+    if (config.max_user_frame_count < 1 || config.max_user_frame_count > MAX_USER_FRAME_COUNT) {
+        throw EliteException(EliteException::Code::ILLEGAL_PARAM, "max user frame count is out of range");
+    }
+    std::vector<UserFrame> frames = config.user_frames;
+    for (auto& frame : frames) {
+        if (frame.id < 0 || frame.id >= config.max_user_frame_count) {
+            throw EliteException(EliteException::Code::ILLEGAL_PARAM, "user frame id is out of range");
+        }
+    }
+    std::sort(frames.begin(), frames.end(), [](const UserFrame& left, const UserFrame& right) { return left.id < right.id; });
+    std::ostringstream user_frames;
+    user_frames << std::setprecision(17);
+    user_frames << "[";
+    for (int32_t id = 0; id < config.max_user_frame_count; ++id) {
+        if (id > 0) {
+            user_frames << ", ";
+        }
+        const auto it = std::find_if(frames.begin(), frames.end(), [id](const UserFrame& frame) { return frame.id == id; });
+        const vector6d_t pose = it == frames.end() ? vector6d_t{{0, 0, 0, 0, 0, 0}} : it->pose;
+        user_frames << "[" << pose[0] << ", " << pose[1] << ", " << pose[2] << ", " << pose[3] << ", " << pose[4] << ", "
+                    << pose[5] << "]";
+    }
+    user_frames << "]";
+    while (file_string.find(USER_FRAMES_REPLACE) != std::string::npos) {
+        file_string.replace(file_string.find(USER_FRAMES_REPLACE), USER_FRAMES_REPLACE.length(), user_frames.str());
+    }
 }
 
 void EliteDriver::init(const EliteDriverConfig& config) {
     ELITE_LOG_DEBUG("Initialization Elite Driver");
 
     impl_ = std::make_unique<EliteDriver::Impl>(config.robot_ip);
+    impl_->user_frames_ = config.user_frames;
+    impl_->max_user_frame_count_ = config.max_user_frame_count;
 
     // First, need to connect to the robot primary port before attempting to obtain the local IP address
     ELITE_LOG_DEBUG("Connecting to robot primary port %s ...", config.robot_ip.c_str());
@@ -259,19 +297,105 @@ EliteDriver::EliteDriver(const std::string& robot_ip, const std::string& local_i
 EliteDriver::~EliteDriver() { impl_.reset(); }
 
 bool EliteDriver::writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian) {
+    return writeServoj(pos, timeout_ms, cartesian, getActiveUserFrame());
+}
+
+bool EliteDriver::writeServoj(const vector6d_t& pos, int timeout_ms, bool cartesian, int32_t user_frame_id) {
     if (cartesian) {
-        return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_POSE, timeout_ms);
+        return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_POSE, timeout_ms, user_frame_id);
     } else {
-        return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_SERVOJ, timeout_ms);
+        return impl_->reverse_server_->writeJointCommand(pos, ControlMode::MODE_SERVOJ, timeout_ms, BASE_USER_FRAME_ID);
     }
 }
 
 bool EliteDriver::writeSpeedl(const vector6d_t& vel, int timeout_ms) {
-    return impl_->reverse_server_->writeJointCommand(vel, ControlMode::MODE_SPEEDL, timeout_ms);
+    return writeSpeedl(vel, timeout_ms, getActiveUserFrame());
+}
+
+bool EliteDriver::writeSpeedl(const vector6d_t& vel, int timeout_ms, int32_t user_frame_id) {
+    if (user_frame_id < BASE_USER_FRAME_ID || user_frame_id >= impl_->max_user_frame_count_) {
+        return false;
+    }
+    vector6d_t base_velocity = vel;
+    if (user_frame_id >= 0) {
+        std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+        const auto it = std::find_if(impl_->user_frames_.begin(), impl_->user_frames_.end(),
+                                     [user_frame_id](const UserFrame& frame) { return frame.id == user_frame_id && frame.valid; });
+        if (it == impl_->user_frames_.end()) {
+            return false;
+        }
+        base_velocity = rotateVector(it->pose, vel);
+    }
+    return impl_->reverse_server_->writeJointCommand(base_velocity, ControlMode::MODE_SPEEDL, timeout_ms, BASE_USER_FRAME_ID);
 }
 
 bool EliteDriver::writeSpeedj(const vector6d_t& vel, int timeout_ms) {
     return impl_->reverse_server_->writeJointCommand(vel, ControlMode::MODE_SPEEDJ, timeout_ms);
+}
+
+bool EliteDriver::setUserFrame(int32_t frame_id, const vector6d_t& pose) {
+    if (frame_id < 0 || frame_id >= impl_->max_user_frame_count_) {
+        return false;
+    }
+    {
+        std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+        auto it = std::find_if(impl_->user_frames_.begin(), impl_->user_frames_.end(),
+                               [frame_id](const UserFrame& frame) { return frame.id == frame_id; });
+        if (it == impl_->user_frames_.end()) {
+            impl_->user_frames_.push_back(UserFrame{frame_id, std::string(), pose, true});
+        } else {
+            it->pose = pose;
+            it->valid = true;
+        }
+    }
+    // The command is intentionally sent after updating the local cache. This
+    // also makes subsequent motion calls use the new frame immediately.
+    return impl_->script_command_server_->setUserFrame(frame_id, pose);
+}
+
+bool EliteDriver::setUserFrame(const UserFrame& frame) {
+    return setUserFrame(frame.id, frame.pose);
+}
+
+bool EliteDriver::getUserFrame(int32_t frame_id, UserFrame& frame) const {
+    if (frame_id < 0 || frame_id >= impl_->max_user_frame_count_) {
+        return false;
+    }
+    std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+    const auto it = std::find_if(impl_->user_frames_.begin(), impl_->user_frames_.end(),
+                                 [frame_id](const UserFrame& value) { return value.id == frame_id && value.valid; });
+    if (it == impl_->user_frames_.end()) {
+        return false;
+    }
+    frame = *it;
+    return true;
+}
+
+std::vector<UserFrame> EliteDriver::getUserFrames() const {
+    std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+    return impl_->user_frames_;
+}
+
+bool EliteDriver::setActiveUserFrame(int32_t user_frame_id) {
+    if (user_frame_id < BASE_USER_FRAME_ID || user_frame_id >= impl_->max_user_frame_count_) {
+        return false;
+    }
+    if (user_frame_id >= 0) {
+        std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+        const auto it = std::find_if(impl_->user_frames_.begin(), impl_->user_frames_.end(),
+                                     [user_frame_id](const UserFrame& frame) { return frame.id == user_frame_id && frame.valid; });
+        if (it == impl_->user_frames_.end()) {
+            return false;
+        }
+    }
+    std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+    impl_->active_user_frame_id_ = user_frame_id;
+    return true;
+}
+
+int32_t EliteDriver::getActiveUserFrame() const {
+    std::lock_guard<std::mutex> lock(impl_->user_frame_mutex_);
+    return impl_->active_user_frame_id_;
 }
 
 void EliteDriver::setTrajectoryResultCallback(std::function<void(TrajectoryMotionResult)> cb) {
@@ -283,12 +407,22 @@ void EliteDriver::setTrajectoryFeedbackCallback(std::function<void(const Traject
 }
 
 bool EliteDriver::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian) {
-    return impl_->trajectory_server_->writeTrajectoryPoint(positions, time, blend_radius, cartesian);
+    return writeTrajectoryPoint(positions, time, blend_radius, cartesian, getActiveUserFrame());
+}
+
+bool EliteDriver::writeTrajectoryPoint(const vector6d_t& positions, float time, float blend_radius, bool cartesian,
+                                       int32_t user_frame_id) {
+    return impl_->trajectory_server_->writeTrajectoryPoint(positions, time, blend_radius, cartesian, user_frame_id);
 }
 
 bool EliteDriver::writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed,
                                        float acceleration) {
-    return impl_->trajectory_server_->writeTrajectoryPoint(positions, blend_radius, cartesian, speed, acceleration);
+    return writeTrajectoryPoint(positions, blend_radius, cartesian, speed, acceleration, getActiveUserFrame());
+}
+
+bool EliteDriver::writeTrajectoryPoint(const vector6d_t& positions, float blend_radius, bool cartesian, float speed,
+                                       float acceleration, int32_t user_frame_id) {
+    return impl_->trajectory_server_->writeTrajectoryPoint(positions, blend_radius, cartesian, speed, acceleration, user_frame_id);
 }
 
 bool EliteDriver::writeTrajectoryControlAction(TrajectoryControlAction action, const int point_number, int robot_receive_timeout) {

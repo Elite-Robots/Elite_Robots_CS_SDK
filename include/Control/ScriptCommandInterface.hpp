@@ -32,6 +32,7 @@ class ScriptCommandInterface : public ReversePort {
         SET_COLLISION_DETECT_ENABLED = 9,
         SET_COLLISION_SENSITIVITY = 10,
         SET_MOUNTING_PLANE = 11,
+        SET_USER_FRAME = 12,
     };
 
     enum class SerialResult {
@@ -144,6 +145,13 @@ class ScriptCommandInterface : public ReversePort {
      * @return false fail
      */
     bool setMountingPlane(double z_rotation, double tilt = 0.0);
+
+    /**
+     * @brief Update one SDK-managed user frame in the external control script.
+     * @param frame_id Non-negative user frame id.
+     * @param pose User frame pose expressed in the base frame.
+     */
+    bool setUserFrame(int32_t frame_id, const vector6d_t& pose);
 };
 
 }  // namespace ELITE

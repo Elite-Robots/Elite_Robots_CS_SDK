@@ -58,6 +58,7 @@ set(
     source/Common/SshUtils.cpp
     source/Common/RtUtils.cpp
     source/Common/SharedLibrary.cpp
+    source/Common/FrameUtils.cpp
     source/Primary/PrimaryPort.cpp
     source/Primary/PrimaryPortInterface.cpp
     source/Primary/RobotConfPackage.cpp
@@ -122,6 +123,7 @@ set(
     Common/StringUtils.hpp
     Common/SharedLibrary.hpp
     Common/BoostAsioCompat.hpp
+    Common/FrameUtils.hpp
     KinematicsBase/KinematicsBase.hpp
     PoseAlgebraBase/PoseAlgebraBase.hpp
     ClassLoader/ClassRegistry.hpp

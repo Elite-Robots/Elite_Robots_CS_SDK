@@ -123,6 +123,8 @@ TEST(TRAJECTORY_INTERFACE, write_point) {
     EXPECT_EQ(::htonl(buffer[19]), 1.230 * CONTROL::POS_ZOOM_RATIO);
     // mode
     EXPECT_EQ(::htonl(buffer[20]), (int)TrajectoryMotionType::CARTESIAN);
+    // user frame, defaults to base
+    EXPECT_EQ(::htonl(buffer[21]), BASE_USER_FRAME_ID);
 
     vector6d_t point{1.0, 2.0, 3.0, 4.0, 5.0, 6.0};
     send_feedback_frame(*client, (int)TrajectoryFeedbackMessageType::ACTIVE_POINT, 0, 1, -1, point);

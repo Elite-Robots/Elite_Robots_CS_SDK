@@ -458,10 +458,15 @@ Gets the actual joint temperatures.
 ### Get the Actual TCP Pose
 ```cpp
 vector6d_t getActualTCPPose()
+vector6d_t getActualTCPPose(const vector6d_t& user_frame_pose)
+vector6d_t getActualTCPPose(const UserFrame& user_frame)
 ```
 - ***Function***
-Gets the actual Cartesian coordinates of the tool.
-- ***Return Value***: [x, y, z, rx, ry, rz], where x, y, z are position vectors, and rx, ry, rz are rotation vectors.
+Gets the actual Cartesian coordinates of the tool. The no-argument overload returns the pose in the base frame. When a user-frame pose relative to the base frame is provided, the returned pose is expressed in that user frame.
+- ***Parameters***
+    - user_frame_pose: Optional user-frame pose relative to the base frame, formatted as `[x, y, z, rx, ry, rz]`, with meters for position and radians for orientation.
+    - user_frame: User frame object. Its `pose` field, expressed relative to the base frame, is used for the conversion.
+- ***Return Value***: `[x, y, z, rx, ry, rz]`, where x, y, z are position vectors and rx, ry, rz are rotation vectors.
 
 ---
 

@@ -10,6 +10,8 @@
 
 #include <array>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #if (ELITE_SDK_COMPILE_STANDARD >= 17)
 #include <variant>
@@ -160,6 +162,18 @@ using vector3d_t = std::array<double, 3>;
 using vector6d_t = std::array<double, 6>;
 using vector6int32_t = std::array<int32_t, 6>;
 using vector6uint32_t = std::array<uint32_t, 6>;
+
+// The base frame is represented by a negative id. User frame ids are
+// non-negative and are maintained by EliteDriver.
+static constexpr int32_t BASE_USER_FRAME_ID = -1;
+static constexpr int32_t MAX_USER_FRAME_COUNT = 16;
+
+struct UserFrame {
+    int32_t id = 0;
+    std::string name;
+    vector6d_t pose{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+    bool valid = true;
+};
 
 struct TrajectoryMotionFeedback {
     TrajectoryFeedbackMessageType message_type = TrajectoryFeedbackMessageType::RESULT;
